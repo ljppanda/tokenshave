@@ -2,6 +2,8 @@
 
 English | [简体中文](README.zh-CN.md)
 
+[![test](https://github.com/ljppanda/tokenshave/actions/workflows/test.yml/badge.svg)](https://github.com/ljppanda/tokenshave/actions/workflows/test.yml)
+
 **Make your AI coding agent faster and cheaper. Automatically.**
 
 `tokenshave` sits between your AI coding agent and the tools it runs, and trims

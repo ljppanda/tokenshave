@@ -2,6 +2,8 @@
 
 [English](README.md) | 简体中文
 
+[![test](https://github.com/ljppanda/tokenshave/actions/workflows/test.yml/badge.svg)](https://github.com/ljppanda/tokenshave/actions/workflows/test.yml)
+
 **让你的 AI 编码 agent 更快、更省钱。全自动。**
 
 `tokenshave` 坐在你的 AI 编码 agent 和它运行的工具之间，在那些吃 token 的冗长输出（npm install 日志、测试套件、diff）进入上下文窗口**之前**把它们裁掉。
