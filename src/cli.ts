@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { aggregate, loadStats } from "./stats.js";
 import { installPlugins, uninstallPlugins, type InstallReport, type UninstallReport } from "./install.js";
 

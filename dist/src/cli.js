@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { aggregate, loadStats } from "./stats.js";
 import { installPlugins, uninstallPlugins } from "./install.js";
 const BOLD = "\x1b[1m";
