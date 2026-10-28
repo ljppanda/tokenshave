@@ -39,6 +39,10 @@ buried mid-log — every one answered correctly by the agent, at 66–79% fewer
 tokens (receipts in [VERIFY.md](VERIFY.md), e.g. `4,951 → 1,146 tok, exact
 failing test name`). Install:
 
+> **Heads-up:** not yet on the npm registry — the `npx tokenshave …` commands
+> below will fail until the first publish. Until then install from this repo:
+> `npm i -g github:ljppanda/tokenshave`.
+
 ```bash
 cd your-project && npx tokenshave install
 ```

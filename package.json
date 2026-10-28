@@ -3,18 +3,22 @@
   "version": "0.4.0",
   "description": "Make your AI coding agent faster and cheaper: trim noisy tool output (npm logs, test suites, diffs) before it enters the context. Pure local, zero network, one command.",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "bin": {
-    "tokenshave": "./dist/cli.js"
+    "tokenshave": "./dist/src/cli.js"
   },
+  "files": [
+    "dist/"
+  ],
   "engines": {
     "node": ">=18"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "tsc -p tsconfig.json && node --test dist/test/engine.test.js dist/test/install.test.js",
-    "prepublishOnly": "npm run build"
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build && npm test"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

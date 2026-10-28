@@ -1,0 +1,85 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm, mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { installPlugins, uninstallPlugins, generatePluginSource, pluginTargets, INSTALL_MARKER, } from "../src/install.js";
+async function scratch() {
+    const dir = join(tmpdir(), "tokenshave-install-test-");
+    return mkdtemp(dir);
+}
+const FAKE_URL = "file:///C:/some/tokenshave/dist/src/index.js";
+test("install writes the V2 plugin file with the package URL", async () => {
+    const dir = await scratch();
+    try {
+        const reports = await installPlugins(dir, FAKE_URL);
+        assert.deepEqual(reports.map((r) => r.action), ["created"]);
+        const [v2path] = pluginTargets(dir);
+        assert.match(v2path, /[\\/]\.opencode[\\/]plugins[\\/]tokenshave\.ts$/);
+        const v2 = await readFile(v2path, "utf8");
+        assert.ok(v2.includes(INSTALL_MARKER), "installation marker present");
+        assert.ok(v2.includes('PKG_URL = "file:///C:/some/tokenshave/dist/src/index.js"'), "package embedded");
+        assert.ok(v2.includes("Plugin.define"), "V2 plugin form present");
+        assert.ok(v2.includes('import("@opencode/plugin")'), "plugin SDK dynamically imported (load-safe)");
+        // verified result shape: nested { exit, truncated, output }
+        assert.ok(v2.includes("typeof o.output === ") || v2.includes("o.output"), "handles nested shell result.output.output");
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test("generated plugin never throws when nothing resolves", async () => {
+    const src = generatePluginSource("file:///missing/pkg/index.js", "2026-01-01");
+    // the whole file body lives inside guards; the only unconditional logic
+    // is the payload-object assembly, which must not `throw` on null modules
+    assert.ok(!src.includes("throw"), "template must contain no throw statements");
+});
+test("re-install is idempotent and does not clobber", async () => {
+    const dir = await scratch();
+    try {
+        await installPlugins(dir, FAKE_URL);
+        const [v2path] = pluginTargets(dir);
+        const first = await readFile(v2path, "utf8");
+        const again = await installPlugins(dir, FAKE_URL);
+        assert.deepEqual(again.map((r) => r.action), ["skipped-existing"]);
+        const second = await readFile(v2path, "utf8");
+        assert.equal(first, second, "file must stay untouched on re-install");
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test("uninstall removes only our files, leaves foreign files alone", async () => {
+    const dir = await scratch();
+    try {
+        await mkdir(join(dir, ".opencode", "plugins"), { recursive: true });
+        const foreign = join(dir, ".opencode", "plugins", "tokenshave.ts");
+        await writeFile(foreign, "// someone else's plugin with a similar name\ntokenshave rules", "utf8");
+        const [v2path, v1path] = pluginTargets(dir);
+        assert.equal(v2path.replace(/\\/g, "/"), foreign.replace(/\\/g, "/"));
+        const reports = await uninstallPlugins(dir);
+        assert.deepEqual(reports.map((r) => r.action), ["left-foreign-file"]);
+        // foreign file survives
+        const after = await readFile(foreign, "utf8");
+        assert.ok(after.includes("someone else's plugin"));
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
+test("full cycle: install → uninstall leaves no trace", async () => {
+    const dir = await scratch();
+    try {
+        await installPlugins(dir, FAKE_URL);
+        const reports = await uninstallPlugins(dir);
+        assert.deepEqual(reports.map((r) => r.action), ["removed"]);
+        // both directories end up empty of our files
+        const targets = pluginTargets(dir);
+        for (const t of targets) {
+            await assert.rejects(() => readFile(t, "utf8"), () => true);
+        }
+    }
+    finally {
+        await rm(dir, { recursive: true, force: true });
+    }
+});
