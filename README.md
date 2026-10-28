@@ -1,5 +1,7 @@
 # tokenshave
 
+English | [简体中文](README.zh-CN.md)
+
 **Make your AI coding agent faster and cheaper. Automatically.**
 
 `tokenshave` sits between your AI coding agent and the tools it runs, and trims
