@@ -1,0 +1,34 @@
+{
+  "name": "tokenshave",
+  "version": "0.4.0",
+  "description": "Make your AI coding agent faster and cheaper: trim noisy tool output (npm logs, test suites, diffs) before it enters the context. Pure local, zero network, one command.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "tokenshave": "./dist/cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node --test \"dist/test/*.test.js\"",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^5.5.0"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "claude-code",
+    "opencode",
+    "codex",
+    "tokens",
+    "context-window",
+    "developer-tools"
+  ],
+  "license": "MIT"
+}

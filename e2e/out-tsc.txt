@@ -1,0 +1,66 @@
+﻿bad-many.ts(1,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(2,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(3,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(4,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(5,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(6,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(7,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(8,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(9,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(10,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(11,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(12,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(13,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(14,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(15,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(16,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(17,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(18,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(19,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(20,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(21,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(22,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(23,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(24,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(25,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(26,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(27,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(28,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(29,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(30,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad.ts(3,14): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+bad.ts(6,30): error TS2322: Type 'string' is not assignable to type 'number'.
+bad.ts(7,13): error TS2304: Cannot find name 'nonexistentVariableName'.
+bad-many.ts(1,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(2,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(3,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(4,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(5,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(6,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(7,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(8,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(9,27): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(10,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(11,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(12,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(13,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(14,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(15,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(16,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(17,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(18,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(19,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(20,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(21,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(22,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(23,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(24,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(25,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(26,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(27,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(28,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(29,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad-many.ts(30,28): error TS2365: Operator '+' cannot be applied to types 'number' and '{}'.
+bad.ts(3,14): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+bad.ts(6,30): error TS2322: Type 'string' is not assignable to type 'number'.
+bad.ts(7,13): error TS2304: Cannot find name 'nonexistentVariableName'.

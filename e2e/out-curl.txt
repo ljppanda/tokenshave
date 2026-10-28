@@ -1,0 +1,37 @@
+﻿* Uses proxy env variable no_proxy == '127.0.0.1,localhost,::1'
+* Host registry.npmjs.org:443 was resolved.
+* IPv6: (none)
+* IPv4: 104.16.6.34, 104.16.4.34, 104.16.5.34, 104.16.9.34, 104.16.10.34, 104.16.11.34, 104.16.2.34, 104.16.0.34, 104.16.8.34, 104.16.7.34, 104.16.3.34, 104.16.1.34
+*   Trying 104.16.6.34:443...
+*   Trying 104.16.4.34:443...
+* schannel: disabled automatic use of client certificate
+* ALPN: curl offers http/1.1
+* ALPN: server accepted http/1.1
+* Established connection to registry.npmjs.org (104.16.6.34 port 443) from 192.168.10.143 port 60408 
+* using HTTP/1.x
+> GET /express HTTP/1.1
+> Host: registry.npmjs.org
+> User-Agent: curl/8.21.0
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 200 OK
+< Date: Wed, 28 Oct 2026 09:16:49 GMT
+< Content-Type: application/json
+< Content-Length: 823554
+< Connection: keep-alive
+< CF-Ray: a518d8095fa8fa47-LAX
+< CF-Cache-Status: HIT
+< Accept-Ranges: bytes
+< Access-Control-Allow-Origin: *
+< Age: 16
+< Cache-Control: public, max-age=300
+< ETag: "a7e7e37e8d99c297653049dff512289d"
+< Last-Modified: Fri, 09 Oct 2026 12:57:26 GMT
+< Server: cloudflare
+< Vary: accept-encoding, accept
+< set-cookie: __cf_bm=pRuXqrMF32vGouUsmRpFeuCzVAMafYwq_fKRskNxL_k-1793179009.4932234-1.0.1.1-N7N.K4quuCm13Mzv1jG4CoA1NzQREXRMw2HkUb0i0a5wyO60TwX67gmu_BzjZfxPxSNa5N5AKLtHqe8Qkk1BdB6NVkG6IkUztqFwMNDK1dzvDLchUIRb_h5lWrHegrc5; HttpOnly; SameSite=None; Secure; Path=/; Domain=npmjs.org; Expires=Wed, 28 Oct 2026 09:46:49 GMT
+< 
+{ [624 bytes data]
+* Connection #0 to host registry.npmjs.org:443 left intact
+CURL-EXIT 0 

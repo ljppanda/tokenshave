@@ -1,0 +1,8 @@
+{
+  "name": "qa-app-conflict",
+  "version": "1.0.0",
+  "dependencies": {
+    "react": "19.0.0",
+    "react-dom": "16.14.0"
+  }
+}

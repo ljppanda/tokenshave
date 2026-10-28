@@ -1,0 +1,45 @@
+﻿npm verbose cli E:\JavaApp\node.js\node.exe E:\JavaApp\node.js\node_modules\npm\bin\npm-cli.js
+npm info using npm@10.9.2
+npm info using node@v22.14.0
+npm verbose title npm install react
+npm verbose argv "install" "react" "--loglevel" "verbose" "--fetch-retries" "1"
+npm verbose logfile logs-max:10 dir:C:\Users\me\AppData\Local\npm-cache\_logs\2026-10-28T09_15_31_025Z-
+npm verbose logfile C:\Users\me\AppData\Local\npm-cache\_logs\2026-10-28T09_15_31_025Z-debug-0.log
+npm http cache https://registry.npmmirror.com/react 25ms (cache hit)
+npm http cache react@https://registry.npmmirror.com/react/-/react-19.3.1.tgz 0ms (cache hit)
+npm http fetch POST 404 https://registry.npmmirror.com/-/npm/v1/security/advisories/bulk 73ms
+npm http fetch POST 404 https://registry.npmmirror.com/-/npm/v1/security/audits/quick 14ms
+npm verbose audit error HttpErrorGeneral: 404 Not Found - POST https://registry.npmmirror.com/-/npm/v1/security/audits/quick - [NOT_IMPLEMENTED] /-/npm/v1/security/* not implemented yet
+npm verbose audit error     at E:\JavaApp\node.js\node_modules\npm\node_modules\npm-registry-fetch\lib\check-response.js:103:15
+npm verbose audit error     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+npm verbose audit error     at async [getReport] (E:\JavaApp\node.js\node_modules\npm\node_modules\@npmcli\arborist\lib\audit-report.js:336:21)
+npm verbose audit error     at async AuditReport.run (E:\JavaApp\node.js\node_modules\npm\node_modules\@npmcli\arborist\lib\audit-report.js:106:19) {
+npm verbose audit error   headers: [Object: null prototype] {
+npm verbose audit error     server: [ 'Tengine' ],
+npm verbose audit error     date: [ 'Wed, 28 Oct 2026 09:15:32 GMT' ],
+npm verbose audit error     'content-type': [ 'application/json' ],
+npm verbose audit error     'transfer-encoding': [ 'chunked' ],
+npm verbose audit error     connection: [ 'keep-alive' ],
+npm verbose audit error     'strict-transport-security': [ 'max-age=5184000' ],
+npm verbose audit error     via: [ 'kunlun5.cn8033[,404666]' ],
+npm verbose audit error     'timing-allow-origin': [ '*' ],
+npm verbose audit error     eagleid: [ '3df10d0a17931789328748054e' ],
+npm verbose audit error     'x-fetch-attempts': [ '1' ]
+npm verbose audit error   },
+npm verbose audit error   statusCode: 404,
+npm verbose audit error   code: 'E404',
+npm verbose audit error   method: 'POST',
+npm verbose audit error   uri: 'https://registry.npmmirror.com/-/npm/v1/security/audits/quick',
+npm verbose audit error   body: {
+npm verbose audit error     error: '[NOT_IMPLEMENTED] /-/npm/v1/security/* not implemented yet'
+npm verbose audit error   },
+npm verbose audit error   pkgid: undefined
+npm verbose audit error }
+
+changed 1 package in 1s
+npm verbose cwd E:\opencode\tokenshave\e2e\app
+npm verbose os Windows_NT 10.0.26200
+npm verbose node v22.14.0
+npm verbose npm  v10.9.2
+npm verbose exit 0
+npm info ok

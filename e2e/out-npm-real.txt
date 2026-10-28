@@ -1,0 +1,8 @@
+﻿npm info using npm@10.9.2
+npm info using node@v22.14.0
+npm http fetch GET 200 https://registry.npmmirror.com/react 208ms (cache miss)
+npm http fetch POST 404 https://registry.npmmirror.com/-/npm/v1/security/advisories/bulk 12ms
+npm http fetch POST 404 https://registry.npmmirror.com/-/npm/v1/security/audits/quick 11ms
+
+up to date in 1s
+npm info ok
