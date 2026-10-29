@@ -37,10 +37,6 @@
 [VERIFY.md](VERIFY.md)，例如 `4,951 → 1,146 tok，精确说出失败测试名`）。
 安装：
 
-> **注意**：npm 包尚未发布——第一次 publish 之前，下面的
-> `npx tokenshave …` 命令会失败。当前请从本仓库安装：
-> `npm i -g github:ljppanda/tokenshave`。
-
 ```bash
 cd your-project && npx tokenshave install
 ```
