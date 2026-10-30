@@ -1,6 +1,8 @@
-import { mkdir, writeFile, readFile, unlink } from "node:fs/promises";
+import { mkdir, writeFile, readFile, unlink, rmdir } from "node:fs/promises";
 import { join, dirname, resolve } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
+import { CLAUDE_MARKETPLACE_MARKER, CLAUDE_MOD_MARKER, claudeModTargets, generateClaudeModFiles, } from "./claudeMod.js";
+import { loadEngineBundle } from "./claudeBundle.js";
 /**
  * Generates an OpenCode V2 plugin file and installs it into the project.
  *
@@ -154,47 +156,114 @@ if (v2Sdk) {
 export default plugin
 `;
 }
+/** version of this tokenshave package, read from the shipped package.json */
+async function packageVersion() {
+    try {
+        const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+        const raw = await readFile(join(root, "package.json"), "utf8");
+        const pkg = JSON.parse(raw);
+        return pkg.version ?? "0.0.0";
+    }
+    catch {
+        return "0.0.0";
+    }
+}
+const INSTALL_MARKERS = [INSTALL_MARKER, CLAUDE_MOD_MARKER, CLAUDE_MARKETPLACE_MARKER];
+/** install both adapters: the OpenCode V2 plugin and the Claude Code mod */
 export async function installPlugins(dir, pkgUrl) {
     const url = pkgUrl ?? defaultPackageUrl();
-    const source = generatePluginSource(url, new Date().toISOString());
+    const generatedAt = new Date().toISOString();
+    const source = generatePluginSource(url, generatedAt);
     const reports = [];
+    // OpenCode V2 plugin
     for (const target of pluginTargets(dir)) {
         await mkdir(dirname(target), { recursive: true });
-        let existing = null;
-        try {
-            existing = await readFile(target, "utf8");
-        }
-        catch {
-            existing = null;
-        }
-        if (existing !== null) {
-            reports.push({
-                file: target,
-                action: existing.includes(INSTALL_MARKER) ? "skipped-existing" : "left-foreign-file",
-            });
-            continue;
-        }
-        await writeFile(target, source, "utf8");
-        reports.push({ file: target, action: "created" });
+        const action = await writeIfOurs(target, INSTALL_MARKER, source);
+        reports.push({ file: target, agent: "opencode", action });
+    }
+    // Claude Code mod (self-contained: engine inlined, zero imports)
+    const engineBundle = await loadEngineBundle();
+    const version = await packageVersion();
+    const generated = generateClaudeModFiles(generatedAt, engineBundle, version);
+    const targets = claudeModTargets(dir);
+    for (const { target: key, content } of generated) {
+        const target = targets[key];
+        await mkdir(dirname(target), { recursive: true });
+        const marker = key === "marketplaceJson" ? CLAUDE_MARKETPLACE_MARKER : CLAUDE_MOD_MARKER;
+        const action = await writeIfOurs(target, marker, content);
+        reports.push({ file: target, agent: "claude", action });
     }
     return reports;
+}
+async function writeIfOurs(target, marker, content) {
+    let existing = null;
+    try {
+        existing = await readFile(target, "utf8");
+    }
+    catch {
+        existing = null;
+    }
+    if (existing !== null) {
+        return INSTALL_MARKERS.some((m) => existing.includes(m)) ? "skipped-existing" : "left-foreign-file";
+    }
+    await writeFile(target, content, "utf8");
+    return "created";
+}
+/** every file install Plugins ever wrote for Claude Code, in cleanup order */
+function claudeCleanupTargets(dir) {
+    const t = claudeModTargets(dir);
+    return [t.registerJs, t.hooksJson, t.pluginJson, t.readme, t.marketplaceJson];
 }
 export async function uninstallPlugins(dir) {
     const reports = [];
     for (const target of pluginTargets(dir)) {
         try {
             const content = await readFile(target, "utf8");
-            if (content.includes(INSTALL_MARKER)) {
+            if (INSTALL_MARKERS.some((m) => content.includes(m))) {
                 await unlink(target);
-                reports.push({ file: target, action: "removed" });
+                reports.push({ file: target, agent: "opencode", action: "removed" });
             }
             else {
-                reports.push({ file: target, action: "left-foreign-file" });
+                reports.push({ file: target, agent: "opencode", action: "left-foreign-file" });
             }
         }
         catch {
-            reports.push({ file: target, action: "not-built" });
+            reports.push({ file: target, agent: "opencode", action: "not-built" });
         }
     }
+    for (const target of claudeCleanupTargets(dir)) {
+        try {
+            const content = await readFile(target, "utf8");
+            if (INSTALL_MARKERS.some((m) => content.includes(m))) {
+                await unlink(target);
+                reports.push({ file: target, agent: "claude", action: "removed" });
+            }
+            else {
+                reports.push({ file: target, agent: "claude", action: "left-foreign-file" });
+            }
+        }
+        catch {
+            reports.push({ file: target, agent: "claude", action: "not-built" });
+        }
+    }
+    removeEmptyClaudeDirs(dir).catch(() => { });
     return reports;
+}
+/** remove the generated directory skeleton if nothing is left in it */
+async function removeEmptyClaudeDirs(dir) {
+    const t = claudeModTargets(dir);
+    for (const candidate of [
+        dirname(t.registerJs), // .../mod/hooks
+        dirname(t.pluginJson), // .../mod/.claude-plugin
+        dirname(t.readme), // .../mod
+        dirname(t.marketplaceJson), // .../.tokenshave/claude
+        dirname(dirname(t.marketplaceJson)), // .../.tokenshave
+    ]) {
+        try {
+            await rmdir(candidate); // only succeeds when empty — never deletes content
+        }
+        catch {
+            break;
+        }
+    }
 }

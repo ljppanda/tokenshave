@@ -1,0 +1,14 @@
+{
+  "name": "tokenshave",
+  "owner": {
+    "name": "ljppanda",
+    "url": "https://github.com/ljppanda"
+  },
+  "description": "Shaves noisy shell-tool output (npm/test/git/build logs) before it enters Claude Code's context",
+  "plugins": [
+    {
+      "name": "tokenshave",
+      "source": "./claude-mod"
+    }
+  ]
+}

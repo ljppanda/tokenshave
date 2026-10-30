@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { aggregate, loadStats } from "./stats.js";
+import { join } from "node:path";
 import { installPlugins, uninstallPlugins } from "./install.js";
 const BOLD = "\x1b[1m";
 const DIM = "\x1b[2m";
@@ -8,7 +9,7 @@ const RESET = "\x1b[0m";
 const HELP = `${BOLD}tokenshave${RESET} — make your coding agent cheaper, one shaved log at a time.
 
 Usage
-  tokenshave install      wire the OpenCode plugin (writes .opencode/plugins/tokenshave.ts)
+  tokenshave install      wire the plugins (OpenCode + Claude Code)
   tokenshave uninstall    remove the plugin files this tool created
   tokenshave stats        show what you saved so far
   tokenshave --help       this text
@@ -39,7 +40,15 @@ export async function main(argv) {
         if (done.length > 0) {
             for (const r of done) {
                 const icon = r.action === "created" ? `${GREEN}created${RESET}` : r.action;
-                console.log(`  ${icon}  ${r.file}`);
+                const agent = r.agent === "opencode" ? `${DIM}[opencode]${RESET}` : `${DIM}[claude]${RESET}`;
+                console.log(`  ${icon}  ${agent}  ${r.file}`);
+            }
+            const claudeDir = done.find((r) => r.agent === "claude" && r.action !== "left-foreign-file");
+            if (claudeDir) {
+                console.log(`
+${BOLD}Claude Code${RESET}: register the project-local marketplace once (from your shell, in this project):`);
+                console.log(`  claude plugin marketplace add ${join(process.cwd(), ".tokenshave", "claude")} --scope project`);
+                console.log(`${DIM}(or run /plugin marketplace add ./.tokenshave/claude in a Claude Code session, then commit .claude/settings.json for teammates)${RESET}`);
             }
             console.log("\nReload opencode (or run /reload) in this project, then use it for a bit.");
             console.log(`Check savings with ${BOLD}tokenshave stats${RESET}.`);

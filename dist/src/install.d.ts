@@ -20,11 +20,14 @@ export declare function defaultPackageUrl(): string;
 export declare function generatePluginSource(pkgUrl: string, generatedAt: string): string;
 export interface InstallReport {
     file: string;
+    agent: "opencode" | "claude";
     action: "created" | "skipped-existing" | "left-foreign-file";
 }
+/** install both adapters: the OpenCode V2 plugin and the Claude Code mod */
 export declare function installPlugins(dir: string, pkgUrl?: string): Promise<InstallReport[]>;
 export interface UninstallReport {
     file: string;
+    agent: "opencode" | "claude";
     action: "removed" | "left-foreign-file" | "not-built";
 }
 export declare function uninstallPlugins(dir: string): Promise<UninstallReport[]>;
