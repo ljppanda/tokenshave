@@ -20,6 +20,9 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+      # the committed claude-mod/ must stay in sync with src/ + package.json;
+      # regenerate and fail if anything drifted
+      - run: npm run gen:claude-mod && git diff --exit-code claude-mod
       # offline regression harness: captured real outputs through the engine
       # (predict.mjs / offcheck.mjs import ../dist, so it must run after build)
       - run: node e2e/predict.mjs && node e2e/offcheck.mjs

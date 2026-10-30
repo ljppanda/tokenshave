@@ -109,6 +109,79 @@ ls                  1       73        73     0%
 total              13   29,901     9,641    68%   ≈ $0.06
 ```
 
+## Claude Code adapter (2026-10-30, VERIFIED at harness level)
+
+Target: Claude Code 2.1.314 CLI (`@anthropic-ai/claude-code` npm package,
+installed locally without any API account). All commands below ran for real;
+nothing here is projected.
+
+**Adapter form** — not a PostToolUse shell hook. Facts first:
+
+- The docs settled it: PostToolUse shell hooks **cannot rewrite
+  tool_response** (only `additionalContext` / `decision:"block"`);
+  `updatedInput` belongs to PreToolUse and requires allow/ask. Rewriting the
+  output Claude reads needed a different door.
+- The mod API (in-process plugin hooks) has `tool.call` middleware:
+  `const result = await next(e)`, then return a modified copy — Claude reads
+  the rewritten result. Same design as the OpenCode plugin; one engine, both
+  agents.
+
+**Result/event shapes, observed for real:**
+
+- Bash event: `e.tool === "Bash"`, `e.command` is the shell command
+  (equivalent of OpenCode's `event.input.command`).
+- Bash result record: `{ stdout: string; stderr: string; interrupted;
+  ... }` (`BashOutput` in `sdk-tools.d.ts`, shipped in the npm package).
+- `await next(e)` resolves directly to that record when the tool ran;
+  when another hook answered instead, a hook receives an envelope
+  `{ result: <answer> }`. The generated hook accepts both shapes
+  (observed via `claude plugin test` — first run did NOT shave because the
+  hook read the envelope; fixed before shipping).
+- A settings-hook-less mod cannot import `node:fs`: `claude plugin
+  validate` rejects it verbatim — "a hooks module imports its own files by
+  relative path and `claude-code`, nothing else". The generated mod is
+  therefore fully self-contained: the engine is bundled inline,
+  zero imports, no stats recording (honest limitation, on the Roadmap).
+
+**What was verified (all live runs):**
+
+1. `claude plugin validate` on the generated mod: PASS
+   (`tool.call{tool=Bash}` hook + `.catch` fail-open detected as intended;
+   one non-blocking ICON_MISSING warning remains).
+2. `claude plugin test` with a test that fires `$.tool.call({tool: "Bash",
+   command: "npm test --silent"})` against a stubbed 228-line synthetic npm
+   output containing `not ok 42 - test/e2e-failure.js`: PASS — stdout went
+   228 lines → 30, `not ok 42` kept byte-identical, `tokenshave` HEAD_NOTE
+   marker present.
+3. `claude plugin marketplace add E:\opencode\tokenshave` (local directory
+   marketplace) + `claude plugin install tokenshave@tokenshave --yes`:
+   installed, enabled, and "Read from" pointed at the repo dir (in-place
+   load). Then uninstalled + marketplace removed, machine restored.
+4. Same via the **remote GitHub marketplace**
+   (`claude plugin marketplace add ljppanda/tokenshave` — it clones the
+   repo): installed 0.5.0 successfully. Note: the first attempt failed with
+   "Marketplace file not found" — the repo on GitHub did not yet contain
+   `.claude-plugin/marketplace.json`; that failure itself confirmed the
+   clone-then-validate mechanism works, and the retry after push passed.
+   Then uninstalled, machine restored.
+5. `tokenshave install` in a scratch project writes both adapters:
+   `.opencode/plugins/tokenshave.ts` + self-contained `.tokenshave/claude/`
+   mod; `tokenshave uninstall` removes all six files (unit-tested 20/20).
+6. Equivalence test: the inline engine in the generated mod produces
+   **byte-identical** shave output to the real engine (unit test).
+
+**Not yet verified (honest edges):**
+
+- A real interactive Claude session (live chat) firing Bash through the mod.
+  Blocked on an Anthropic API key — `claude plugin test` fires real events
+  through the real hook chain, but it is a harness verdict, not a live-chat
+  verdict. Listed on the README Roadmap with the same wording.
+- Marketplace submission review (bot safety scan) — only relevant when
+  submitting to Anthropic's directory; local/own-marketplace installs do not
+  require it.
+- `ICON_MISSING`: the mod has no icon; cosmetic, flagged by the validator as
+  a directory-submission warning only.
+
 ## Method
 
 1. Capture real command output on a real machine (Windows 11, Node 22,
@@ -157,4 +230,5 @@ Result of the last run:
   correctly; the S4 self-heal was observed twice, but more workloads are
   needed before claiming zero quality cost). Mitigation: every shave carries
   a marker.
-- Claude Code adapter (PostToolUse hook) — same acceptance protocol.
+- Claude Code adapter — VERIFIED at harness level 2026-10-30 (see the
+  section above); a live interactive session remains open.

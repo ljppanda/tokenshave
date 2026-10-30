@@ -28,30 +28,55 @@
 啰嗦的构建器、重复警告和 diff 上下文。方法论见
 [VERIFY.md](VERIFY.md)。
 
-## 状态：v0.4.0 —— 四个场景在真实 OpenCode 会话中验收通过
+## 状态：v0.5.0 —— OpenCode 真会话验收通过，Claude Code mod 已发布
 
-引擎（18/18 测试）+ 统计账本 + OpenCode V2 插件实时裁剪 **shell** 输出。
-验收测试在真实 agent 会话（`opencode run --auto`）里跑了四个场景——安静
-成功、测试失败、散改 diff、藏在日志中段的关键事实——每一个 agent 都回答
-正确，token 少了 66–79%（凭据在
-[VERIFY.md](VERIFY.md)，例如 `4,951 → 1,146 tok，精确说出失败测试名`）。
-安装：
+引擎（20/20 测试）+ 统计账本 + 两个裁剪 **shell/Bash** 输出的适配器：
+
+- **OpenCode V2 插件** —— 在真实 agent 会话（`opencode run --auto`）里跑了
+  四个场景验收——安静成功、测试失败、散改 diff、藏在日志中段的关键事实
+  ——每一个 agent 都回答正确，token 少了 66–79%（凭据在
+  [VERIFY.md](VERIFY.md)，例如 `4,951 → 1,146 tok，精确说出失败测试名`）。
+- **Claude Code mod（in-process 中间件）** —— 改写 Bash 工具结果。对照
+  Claude Code 2.1.314 验收：`claude plugin validate` 通过；`claude plugin
+  test` 真实 fire Bash 事件穿过 hook（228 行合成日志被裁剪，失败行与标记
+  全保留）。三条安装路径全部实测：本地项目 marketplace、user 安装、远程
+  GitHub marketplace。**诚实边界**：完整交互式 Claude 会话需要 API key，
+  作者手上没有——所以会话级验收是 harness 判定，不是真人聊天
+  （[VERIFY.md](VERIFY.md) 明确记录）。
+
+### OpenCode 安装
 
 ```bash
 cd your-project && npx tokenshave install
 ```
 
-只裁剪 `shell` 的结果——`read`/`edit` 的理解力保持原样（源码理解比 token
-更重要）。下一步：Claude Code 适配器。
+### Claude Code 安装
+
+```text
+/plugin marketplace add ljppanda/tokenshave
+/plugin install tokenshave@tokenshave
+```
+
+或者项目级（不动用户全局配置，随仓库走）：
+
+```bash
+cd your-project && npx tokenshave install
+claude plugin marketplace add ./.tokenshave/claude --scope project
+```
+
+只裁剪 `shell`/`Bash` 的结果——`read`/`edit` 的理解力保持原样（源码理解比
+token 更重要）。
 
 ## 快速开始
 
 ```bash
 cd your-agent-project
-npx tokenshave install    # 写入 .opencode/plugins/tokenshave.ts（OpenCode V2）
+npx tokenshave install    # OpenCode：写 .opencode/plugins/tokenshave.ts
+                          # Claude Code：写 .tokenshave/claude/（然后执行
+                          #             claude plugin marketplace add ./.tokenshave/claude --scope project）
 npm i -g tokenshave       # 把引擎放到稳定的全局位置
 /reload 你的 agent 之后照常干活
-npx tokenshave stats      # 看看省了多少
+npx tokenshave stats      # 看看省了多少（OpenCode 会话记账）
 ```
 
 代码里用：
@@ -121,7 +146,9 @@ total               4    15,600     1,140     93%
 - [x] OpenCode 插件 + `npx tokenshave install` / `uninstall`（v0.2）
 - [x] 统计账本 + `tokenshave stats`
 - [x] 真实 agent 会话中的端到端验收（4 场景，v0.4）
-- [ ] Claude Code 适配器（PostToolUse hook）
+- [x] Claude Code 适配器：in-process mod，三条安装路径实测（v0.5）
+- [ ] Claude Code 会话级判定：在真实交互会话里跑同一套 4 场景协议（卡在 API key）
+- [ ] Claude mod 的统计记账（mods 禁止 import node: 模块——需要 `$.fs` 路径）
 - [ ] Codex / Cursor 适配器
 - [ ] 可选的"连 `read` 输出也裁"开关
 
