@@ -182,6 +182,25 @@ nothing here is projected.
 - `ICON_MISSING`: the mod has no icon; cosmetic, flagged by the validator as
   a directory-submission warning only.
 
+**npm 0.5.0 release (2026-10-30, VERIFIED):**
+
+- `npm stage publish` → maintainer approval on npmjs.com (the staged entry
+  showed as "Validating: automated review" first — with no actionable button,
+  which is normal; approval was already registered through the stage-time
+  web login) → **live at 06:56 UTC**, `latest → 0.5.0`, 28 files (the four
+  new: `dist/src/claudeBundle.{js,d.ts}`, `dist/src/claudeMod.{js,d.ts}`).
+- Local verification after publish, run live: `npm view tokenshave@0.5.0` →
+  0.5.0 (needed `--prefer-online`: the local npm cache held a stale
+  packument and briefly reported ETARGET "No matching version" — a local
+  cache artifact, not registry state; direct registry fetch returned 200
+  throughout). A scratch install from the registry then ran the full
+  acceptance script `e2e/check-npm-publish.mjs`: engine saves tokens and
+  keeps the failing line, all generator APIs work, generated mod is
+  import-free and hooks Bash.
+- Front page marketing cirle closed: `npx tokenshave install` in any
+  project now wires BOTH agents, and Claude-only users never touch npm at
+  all (`/plugin marketplace add ljppanda/tokenshave`, live-verified).
+
 ## Method
 
 1. Capture real command output on a real machine (Windows 11, Node 22,
