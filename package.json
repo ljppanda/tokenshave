@@ -6,7 +6,7 @@
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "bin": {
-    "tokenshave": "./dist/src/cli.js"
+    "tokenshave": "dist/src/cli.js"
   },
   "files": [
     "dist/"
