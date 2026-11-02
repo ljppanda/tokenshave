@@ -201,6 +201,47 @@ nothing here is projected.
   project now wires BOTH agents, and Claude-only users never touch npm at
   all (`/plugin marketplace add ljppanda/tokenshave`, live-verified).
 
+**npm 0.6.0 release (2026-11-02, VERIFIED — including one caught-and-fixed
+publish incident):**
+
+- Stage 1: `npm stage publish` staged 0.6.0 (prepublishOnly re-ran build +
+  24/24 tests inside the staging flow). **Incident:** the staged npm
+  validator auto-corrected and REMOVED the bin entry
+  (`"bin[tokenshave]" script name "./dist/src/cli.js" was invalid and
+  removed`). Left uncaught, 0.6.0 would have shipped without a running
+  `npx tokenshave` — 0.5.0's bin path (no `./` prefix) was fine, 0.6.0's
+  had been changed to `./dist/src/cli.js`. Caught via the stage warning,
+  fixed in package.json (bin path without `./`), committed
+  (`a75072d`), pushed.
+- Rejecting the bad staged record: `npm stage reject <id>` requires a 2FA
+  OTP (EOTP). In a non-interactive shell npm MASKS the OTP url
+  (`https://www.npmjs.com/auth/cli/**`) — in output AND in the debug log —
+  so the CLI flow is a dead end here. npmjs.com's **Staged Packages** tab
+  is the reliable channel: the maintainer rejected the bad record there.
+- Stage 2 ( fixed bin): re-staged (`npm stage list` confirmed the old
+  record gone, new id `81670035-…`), then downloaded the staged tarball
+  (`npm stage download`) and unpacked package.json from it —
+  `bin = {"tokenshave":"dist/src/cli.js"}` verified present BEFORE
+  approval. Maintainer approved on the same web tab.
+- Immediately post-approve, live registry checks: `npm view tokenshave@0.6.0
+  --prefer-online` → `latest = 0.6.0`, `bin` intact.
+- Live acceptance `e2e/check-npm-publish.mjs` after a fresh registry
+  install into a scratch dir: 5/5 — engine `1193 → 183 tok, not ok 42
+  kept`; installPlugins exported; claude bundle import-free;
+  generateClaudeModFiles → 5 files hooking Bash with inlined engine;
+  generateCodexHookFiles → hooks Bash with inlined engine. (Fix on the way
+  in: two import paths in the script had double-escaped backslashes —
+  repaired before the run.)
+- User-facing path exercised `npx tokenshave stats` + `npx tokenshave
+  install` from scratch with the real registry: stats printed the ledger
+  table; install created all three adapters in one shot (opencode plugin,
+  claude mod 6 files incl. marketplace.json, codex hooks.json +
+  shave.js).
+- Incident cleanup artifact: running `npm install tokenshave@0.6.0` in
+  the repo by mistake briefly wrote itself into package.json
+  dependencies — reverted with `git checkout --` immediately; the
+  published package and repo history were never affected.
+
 ## Codex CLI adapter (2026-11-02, VERIFIED at harness level; contract read from source)
 
 Target: Codex CLI 0.166.0 (`@openai/codex`, installed locally without any

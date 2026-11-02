@@ -1,4 +1,4 @@
-// Final live-registry acceptance: install tokenshave@0.5.0 from npm and run
+// Final live-registry acceptance: install tokenshave@0.6.0 from npm and run
 // the engine + generators exactly as a library user would.
 const dir = process.env.TEMP + "\\ts-livetest\\node_modules\\tokenshave";
 const m = await import("file:///" + dir.replace(/\\/g, "/") + "/dist/src/index.js");
@@ -20,13 +20,13 @@ const engineBundle = await bundle.loadEngineBundle();
 console.log("3. claude engine bundle: no imports:", !/^\s*import /m.test(engineBundle), "| no exports:", !/^export /m.test(engineBundle));
 
 // 4. claudeMod generates files with the inlined engine
-const mod = await import("file:///" + dir.replace(/\\\\/g, "/") + "/dist/src/claudeMod.js");
+const mod = await import("file:///" + dir.replace(/\\/g, "/") + "/dist/src/claudeMod.js");
 const files = mod.generateClaudeModFiles("livetest", engineBundle, "0.6.0");
 const registerJs = files.find(f => f.target === "registerJs").content;
 console.log("4. mod files:", files.length, "| register hooks Bash:", registerJs.includes('on("tool.call", { tool: "Bash" }'), "| inlined shave:", registerJs.includes("function shave"));
 
 // 5. the codexCodex hook generates with the inlined engine
-const codexGen = await import("file:///" + dir.replace(/\\\\/g, "/") + "/dist/src/codexHook.js");
+const codexGen = await import("file:///" + dir.replace(/\\/g, "/") + "/dist/src/codexHook.js");
 const codexFiles = await codexGen.generateCodexHookFiles("livetest", "0.6.0", 'node "shave.js"', engineBundle);
 console.log("5. codex hook:", "hooks Bash:", codexFiles.hooksJson.includes('"Bash"'), "| inlined shave:", codexFiles.shaveJs.includes("function shave"));
 
