@@ -28,9 +28,9 @@
 啰嗦的构建器、重复警告和 diff 上下文。方法论见
 [VERIFY.md](VERIFY.md)。
 
-## 状态：v0.5.0 —— OpenCode 真会话验收通过，Claude Code mod 已发布
+## 状态：v0.6.0 —— 三个 agent：OpenCode 真会话验收，Claude Code harness 级验收，Codex CLI 已发布
 
-引擎（20/20 测试）+ 统计账本 + 两个裁剪 **shell/Bash** 输出的适配器：
+引擎（24/24 测试）+ 统计账本 + 三个裁剪 **shell** 输出的适配器：
 
 - **OpenCode V2 插件** —— 在真实 agent 会话（`opencode run --auto`）里跑了
   四个场景验收——安静成功、测试失败、散改 diff、藏在日志中段的关键事实
@@ -43,6 +43,14 @@
   GitHub marketplace。**诚实边界**：完整交互式 Claude 会话需要 API key，
   作者手上没有——所以会话级验收是 harness 判定，不是真人聊天
   （[VERIFY.md](VERIFY.md) 明确记录）。
+- **Codex CLI hook（PostToolUse 命令 hook）** —— 用裁剪后的文本整体替换
+  shell 命令完成后的 model 可见结果（契约逐行对照 openai/codex 0.166.0
+  源码核实；`hooks` 特性已是 stable）。harness 级验收：hook 以真实进程跑
+  完整 stdin 契约——220 行合成输出换成省 85% 的替换信封，失败行保留，
+  小输出/垃圾输入/非 Bash 全部原样放行。安装路径实测：本地 marketplace
+  `codex plugin marketplace add` + `codex plugin add` 显示 `installed,
+  enabled`。**诚实边界**：OpenAI 会话级判定等有 key 再做；且 Codex 对任何
+  hook 都要求一次性 `/hooks` 信任审查（是它的设计）后 hook 才生效。
 
 ### OpenCode 安装
 
@@ -64,8 +72,20 @@ cd your-project && npx tokenshave install
 claude plugin marketplace add ./.tokenshave/claude --scope project
 ```
 
-只裁剪 `shell`/`Bash` 的结果——`read`/`edit` 的理解力保持原样（源码理解比
-token 更重要）。
+### Codex CLI 安装
+
+```bash
+codex plugin marketplace add ljppanda/tokenshave
+codex plugin add tokenshave@tokenshave
+```
+
+然后在 Codex 会话里执行一次 `/hooks` 信任 hook。
+
+或者项目级（`npx tokenshave install` 会写好 `.codex/hooks.json`），随后在
+该项目会话里执行一次 `/hooks` 信任。
+
+三种情况下都只裁剪 `shell`/`Bash` 的结果——`read`/`edit` 的理解力保持原样
+（源码理解比 token 更重要）。
 
 ## 快速开始
 
@@ -74,6 +94,7 @@ cd your-agent-project
 npx tokenshave install    # OpenCode：写 .opencode/plugins/tokenshave.ts
                           # Claude Code：写 .tokenshave/claude/（然后执行
                           #             claude plugin marketplace add ./.tokenshave/claude --scope project）
+                          # Codex CLI：写 .codex/hooks.json（然后 /hooks 信任一次）
 npm i -g tokenshave       # 把引擎放到稳定的全局位置
 /reload 你的 agent 之后照常干活
 npx tokenshave stats      # 看看省了多少（OpenCode 会话记账）
@@ -147,9 +168,11 @@ total               4    15,600     1,140     93%
 - [x] 统计账本 + `tokenshave stats`
 - [x] 真实 agent 会话中的端到端验收（4 场景，v0.4）
 - [x] Claude Code 适配器：in-process mod，三条安装路径实测（v0.5）
+- [x] Codex CLI 适配器：PostToolUse hook 替换 shell 结果，契约对照 codex 0.166.0 源码核实（v0.6）
 - [ ] Claude Code 会话级判定：在真实交互会话里跑同一套 4 场景协议（卡在 API key）
-- [ ] Claude mod 的统计记账（mods 禁止 import node: 模块——需要 `$.fs` 路径）
-- [ ] Codex / Cursor 适配器
+- [ ] Codex 会话级判定：同上（卡在 OpenAI key）
+- [ ] Claude mod 与 Codex hook 的统计记账（命令 hook 加一行账本写入是候选方案）
+- [ ] Cursor 适配器
 - [ ] 可选的"连 `read` 输出也裁"开关
 
 ## License

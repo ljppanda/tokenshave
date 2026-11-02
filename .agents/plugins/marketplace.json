@@ -1,0 +1,20 @@
+{
+  "name": "tokenshave",
+  "interface": {
+    "displayName": "tokenshave"
+  },
+  "plugins": [
+    {
+      "name": "tokenshave",
+      "source": {
+        "source": "local",
+        "path": "./codex-mod"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

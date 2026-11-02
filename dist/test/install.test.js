@@ -16,7 +16,7 @@ test("install writes the V2 plugin file with the package URL", async () => {
     const dir = await scratch();
     try {
         const reports = await installPlugins(dir, FAKE_URL);
-        assert.deepEqual(reports.map((r) => r.action), ["created", "created", "created", "created", "created", "created"]);
+        assert.deepEqual(reports.map((r) => r.action), ["created", "created", "created", "created", "created", "created", "created", "created"]);
         const [v2path] = pluginTargets(dir);
         assert.match(v2path, /[\\/]\.opencode[\\/]plugins[\\/]tokenshave\.ts$/);
         const v2 = await readFile(v2path, "utf8");
@@ -89,7 +89,7 @@ test("re-install is idempotent and does not clobber", async () => {
         const [v2path] = pluginTargets(dir);
         const first = await readFile(v2path, "utf8");
         const again = await installPlugins(dir, FAKE_URL);
-        assert.deepEqual(again.map((r) => r.action), ["skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing"]);
+        assert.deepEqual(again.map((r) => r.action), ["skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing"]);
         const second = await readFile(v2path, "utf8");
         assert.equal(first, second, "file must stay untouched on re-install");
     }
@@ -106,7 +106,7 @@ test("uninstall removes only our files, leaves foreign files alone", async () =>
         const [v2path] = pluginTargets(dir);
         assert.equal(v2path.replace(/\\/g, "/"), foreign.replace(/\\/g, "/"));
         const reports = await uninstallPlugins(dir);
-        assert.deepEqual(reports.map((r) => r.action), ["left-foreign-file", "not-built", "not-built", "not-built", "not-built", "not-built"]);
+        assert.deepEqual(reports.map((r) => r.action), ["left-foreign-file", "not-built", "not-built", "not-built", "not-built", "not-built", "not-built", "not-built"]);
         // foreign file survives
         const after = await readFile(foreign, "utf8");
         assert.ok(after.includes("someone else's plugin"));
@@ -115,12 +115,12 @@ test("uninstall removes only our files, leaves foreign files alone", async () =>
         await rm(dir, { recursive: true, force: true });
     }
 });
-test("full cycle: install → uninstall leaves no trace", async () => {
+test("full cycle: install 鈫?uninstall leaves no trace", async () => {
     const dir = await scratch();
     try {
         await installPlugins(dir, FAKE_URL);
         const reports = await uninstallPlugins(dir);
-        assert.deepEqual(reports.map((r) => r.action), ["removed", "removed", "removed", "removed", "removed", "removed"]);
+        assert.deepEqual(reports.map((r) => r.action), ["removed", "removed", "removed", "removed", "removed", "removed", "removed", "removed"]);
         // both adapters' directories end up empty of our files
         const targets = pluginTargets(dir).concat(Object.values(claudeModTargets(dir)));
         for (const t of targets) {

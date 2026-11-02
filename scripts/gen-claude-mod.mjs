@@ -23,7 +23,6 @@ const PATHS = {
   registerJs: "hooks/register.js",
   readme: "README.md",
 };
-
 await rm(outDir, { recursive: true, force: true });
 for (const { target, content } of files) {
   if (target === "marketplaceJson") continue; // project-local only

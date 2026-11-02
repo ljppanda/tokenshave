@@ -30,10 +30,9 @@ Note for honesty: a *successful* `npm install` on npm 9+ is ~12 lines and is
 not a pain point. Savings come from test runners, verbose builders, repeated
 warnings and diff context. See [VERIFY.md](VERIFY.md) for the methodology.
 
-## Status: v0.5.0 — OpenCode live-verified, Claude Code mod shipped
+## Status: v0.6.0 — three agents: OpenCode live-verified, Claude Code verified at harness level, Codex CLI shipped
 
-Engine (20/20 tests), stats ledger, and two adapters shaving **shell/Bash**
-output:
+Engine (24/24 tests), stats ledger, and three adapters shaving **shell** output:
 
 - **OpenCode V2 plugin** — accepted in real agent sessions (`opencode run
   --auto`) across four scenarios — quiet success, failing test-runs, scattered
@@ -48,6 +47,17 @@ output:
   GitHub marketplace. *Honest edge:* a full interactive Claude session needs
   an API key this project's author can't spend — the session-level check
   ([VERIFY.md](VERIFY.md)) is therefore a harness verdict, not a live chat.
+- **Codex CLI hook** — a PostToolUse command hook that replaces the
+  model-visible result of completed shell commands with its shaved form
+  (contract verified line-by-line against the openai/codex 0.166.0 sources;
+  hooks feature is stable there). Harness level: the hook runs as a real
+  process fed the exact stdin shape — 220-line synthetic output → 85%
+  smaller envelope, failure lines kept, small/garbage/wrong-tool input
+  passes through untouched. Install routes ran live: local marketplace
+  `codex plugin marketplace add` + `codex plugin add`, plugin listed
+  `installed, enabled`. *Honest edges:* the live-session verdict awaits an
+  OpenAI key, and Codex requires a one-time `/hooks` trust review before
+  any hook runs (by design, for every plugin hook).
 
 ### Install for OpenCode
 
@@ -69,16 +79,30 @@ cd your-project && npx tokenshave install
 claude plugin marketplace add ./.tokenshave/claude --scope project
 ```
 
-Only `shell`/`Bash` results are shaved — `read`/`edit` comprehension stays
-intact.
+### Install for Codex CLI
+
+```bash
+codex plugin marketplace add ljppanda/tokenshave
+codex plugin add tokenshave@tokenshave
+```
+
+then run `/hooks` once inside Codex to trust the hook.
+
+or project-local (`npx tokenshave install` writes `.codex/hooks.json` for
+you), then run `/hooks` once in a session in that project.
+
+In all three cases only `shell`/`Bash` results are shaved — `read`/`edit`
+comprehension stays intact.
 
 ## Quick start
 
 ```bash
 cd your-agent-project
-npx tokenshave install    # OpenCode: .opencode/plugins/tokenshave.ts
+npx tokenshave install    # wires all three adapters it finds relevant:
+                          # OpenCode: .opencode/plugins/tokenshave.ts
                           # Claude Code: .tokenshave/claude/ (then: claude plugin
                           #             marketplace add ./.tokenshave/claude --scope project)
+                          # Codex CLI: .codex/hooks.json (then: /hooks to trust once)
 npm i -g tokenshave       # keeps the engine in a stable global location
 /reload your agent and work as usual
 npx tokenshave stats      # see what you saved (OpenCode sessions)
@@ -151,9 +175,11 @@ shave that isn't needed never happens.
 - [x] Stats ledger + `tokenshave stats`
 - [x] Live end-to-end verification in real agent sessions (4 scenarios, v0.4)
 - [x] Claude Code adapter: in-process mod, three live-verified install routes (v0.5)
+- [x] Codex CLI adapter: PostToolUse hook replacing shell results, contract verified against codex 0.166.0 sources (v0.6)
 - [ ] Claude Code session verdict: run the same 4-scenario protocol in a real interactive Claude session (blocked on an API key)
-- [ ] Stats ledger from the Claude mod (mods may not import node: modules — needs a `$.fs` path)
-- [ ] Codex / Cursor adapters
+- [ ] Codex session verdict: same, in a real interactive Codex session (blocked on an OpenAI key)
+- [ ] Stats ledger from the Claude mod and the Codex hook (command hooks: a tiny mode where the hook posts one ledger line is on the table)
+- [ ] Cursor adapter
 - [ ] Optional bash-only toggle for users who also want shaved `read` output
 
 ## License

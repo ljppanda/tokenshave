@@ -20,14 +20,19 @@ export declare function defaultPackageUrl(): string;
 export declare function generatePluginSource(pkgUrl: string, generatedAt: string): string;
 export interface InstallReport {
     file: string;
-    agent: "opencode" | "claude";
+    agent: "opencode" | "claude" | "codex";
     action: "created" | "skipped-existing" | "left-foreign-file";
 }
-/** install both adapters: the OpenCode V2 plugin and the Claude Code mod */
+/** project-local Codex hook files (.codex/hooks.json + self-contained script) */
+export declare function codexTargets(dir: string): {
+    hooksJson: string;
+    shaveJs: string;
+};
+/** install all adapters: OpenCode V2 plugin, Claude Code mod, Codex CLI hook */
 export declare function installPlugins(dir: string, pkgUrl?: string): Promise<InstallReport[]>;
 export interface UninstallReport {
     file: string;
-    agent: "opencode" | "claude";
+    agent: "opencode" | "claude" | "codex";
     action: "removed" | "left-foreign-file" | "not-built";
 }
 export declare function uninstallPlugins(dir: string): Promise<UninstallReport[]>;

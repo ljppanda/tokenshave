@@ -2,6 +2,7 @@ import { mkdir, writeFile, readFile, unlink, rmdir } from "node:fs/promises";
 import { join, dirname, resolve } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { CLAUDE_MARKETPLACE_MARKER, CLAUDE_MOD_MARKER, claudeModTargets, generateClaudeModFiles, } from "./claudeMod.js";
+import { CODEX_HOOK_MARKER, generateCodexHookFiles } from "./codexHook.js";
 import { loadEngineBundle } from "./claudeBundle.js";
 /**
  * Generates an OpenCode V2 plugin file and installs it into the project.
@@ -168,8 +169,15 @@ async function packageVersion() {
         return "0.0.0";
     }
 }
-const INSTALL_MARKERS = [INSTALL_MARKER, CLAUDE_MOD_MARKER, CLAUDE_MARKETPLACE_MARKER];
-/** install both adapters: the OpenCode V2 plugin and the Claude Code mod */
+const INSTALL_MARKERS = [INSTALL_MARKER, CLAUDE_MOD_MARKER, CLAUDE_MARKETPLACE_MARKER, CODEX_HOOK_MARKER];
+/** project-local Codex hook files (.codex/hooks.json + self-contained script) */
+export function codexTargets(dir) {
+    return {
+        hooksJson: join(dir, ".codex", "hooks.json"),
+        shaveJs: join(dir, ".tokenshave", "tokenshave-shave.js"),
+    };
+}
+/** install all adapters: OpenCode V2 plugin, Claude Code mod, Codex CLI hook */
 export async function installPlugins(dir, pkgUrl) {
     const url = pkgUrl ?? defaultPackageUrl();
     const generatedAt = new Date().toISOString();
@@ -192,6 +200,19 @@ export async function installPlugins(dir, pkgUrl) {
         const marker = key === "marketplaceJson" ? CLAUDE_MARKETPLACE_MARKER : CLAUDE_MOD_MARKER;
         const action = await writeIfOurs(target, marker, content);
         reports.push({ file: target, agent: "claude", action });
+    }
+    // Codex CLI project-local hook (.codex/hooks.json + inline-engine script)
+    const codex = codexTargets(dir);
+    const files = await generateCodexHookFiles(generatedAt, version, `node "${codex.shaveJs.replace(/\\/g, "/")}"`, engineBundle);
+    const codexReports = [
+        ["hooksJson", files.hooksJson],
+        ["shaveJs", files.shaveJs],
+    ];
+    for (const [key, content] of codexReports) {
+        const target = codex[key];
+        await mkdir(dirname(target), { recursive: true });
+        const action = await writeIfOurs(target, CODEX_HOOK_MARKER, content);
+        reports.push({ file: target, agent: "codex", action });
     }
     return reports;
 }
@@ -244,6 +265,22 @@ export async function uninstallPlugins(dir) {
         }
         catch {
             reports.push({ file: target, agent: "claude", action: "not-built" });
+        }
+    }
+    const codex = codexTargets(dir);
+    for (const target of [codex.hooksJson, codex.shaveJs]) {
+        try {
+            const content = await readFile(target, "utf8");
+            if (INSTALL_MARKERS.some((m) => content.includes(m))) {
+                await unlink(target);
+                reports.push({ file: target, agent: "codex", action: "removed" });
+            }
+            else {
+                reports.push({ file: target, agent: "codex", action: "left-foreign-file" });
+            }
+        }
+        catch {
+            reports.push({ file: target, agent: "codex", action: "not-built" });
         }
     }
     removeEmptyClaudeDirs(dir).catch(() => { });
