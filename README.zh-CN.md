@@ -1,128 +1,82 @@
 # tokenshave
 
-[English](README.md) | 简体中文
-
 [![test](https://github.com/ljppanda/tokenshave/actions/workflows/test.yml/badge.svg)](https://github.com/ljppanda/tokenshave/actions/workflows/test.yml)
 
-**让你的 AI 编码 agent 更快、更省钱。全自动。**
+[English](README.md) | 简体中文
 
-`tokenshave` 坐在你的 AI 编码 agent 和它运行的工具之间，在那些吃 token 的冗长输出（npm install 日志、测试套件、diff）进入上下文窗口**之前**把它们裁掉。
+你的 coding agent 在读你的代码之前，先读的是工具输出。tokenshave 在这些输出进入 context window 之前把它们裁掉——npm 日志刷屏、整页绿的测试输出、diff 的上下文行。失败信息、汇总、报错永远保留，只删填充内容。
 
-- **纯本地处理** — 不联网、不上传设备信息、无常驻进程
-- **零运行时依赖** — 一个纯函数文件
-- **透明** — 每一份被裁剪的输出都带有 marker 行，明确说明删掉了什么
-- **可逆** — 错误、失败、摘要永远保留
+```
+工具输出（220 行）  →  tokenshave  →  30 行 + 一条说明删了什么的标记行
+```
 
-## 为什么值得用
+无网络调用。无运行时依赖。每份裁剪输出都带一条标记行，写清删了什么——agent 永远知道自己在读裁剪后的文本。
 
-用真实捕获的输出 + 真实 BPE 分词器（GPT o200k）验证：
+## 安装
 
-| 真实捕获的输出 | 原始 → 裁剪后 | 节省 | 原因 |
-|---|---|---|---|
-| `node --test`（61 行 TAP） | 497 → 225 tok | **55%** | 逐测试的 ok 行是噪音 |
-| `git diff`，200 行文件里 28 处散改 | 3,134 → 771 tok | **75%** | 上下文行占大头 |
-| `pip install`（缓存命中，17 行） | 506 → 506 tok | 0% | 正确地原样放过 |
-| `npm install` 失败（ERESOLVE dump） | 282 → 282 tok | 0% | 错误输出 = 有效载荷，字节级原样保留 |
-
-诚实说明：npm 9+ 的*成功*安装只有 ~12 行，不是痛点。节省来自测试运行器、
-啰嗦的构建器、重复警告和 diff 上下文。方法论见
-[VERIFY.md](VERIFY.md)。
-
-## 状态：v0.6.0 —— 三个 agent：OpenCode 真会话验收，Claude Code harness 级验收，Codex CLI 已发布
-
-引擎（24/24 测试）+ 统计账本 + 三个裁剪 **shell** 输出的适配器：
-
-- **OpenCode V2 插件** —— 在真实 agent 会话（`opencode run --auto`）里跑了
-  四个场景验收——安静成功、测试失败、散改 diff、藏在日志中段的关键事实
-  ——每一个 agent 都回答正确，token 少了 66–79%（凭据在
-  [VERIFY.md](VERIFY.md)，例如 `4,951 → 1,146 tok，精确说出失败测试名`）。
-- **Claude Code mod（in-process 中间件）** —— 改写 Bash 工具结果。对照
-  Claude Code 2.1.314 验收：`claude plugin validate` 通过；`claude plugin
-  test` 真实 fire Bash 事件穿过 hook（228 行合成日志被裁剪，失败行与标记
-  全保留）。三条安装路径全部实测：本地项目 marketplace、user 安装、远程
-  GitHub marketplace。**诚实边界**：完整交互式 Claude 会话需要 API key，
-  作者手上没有——所以会话级验收是 harness 判定，不是真人聊天
-  （[VERIFY.md](VERIFY.md) 明确记录）。
-- **Codex CLI hook（PostToolUse 命令 hook）** —— 用裁剪后的文本整体替换
-  shell 命令完成后的 model 可见结果（契约逐行对照 openai/codex 0.166.0
-  源码核实；`hooks` 特性已是 stable）。harness 级验收：hook 以真实进程跑
-  完整 stdin 契约——220 行合成输出换成省 85% 的替换信封，失败行保留，
-  小输出/垃圾输入/非 Bash 全部原样放行。安装路径实测：本地 marketplace
-  `codex plugin marketplace add` + `codex plugin add` 显示 `installed,
-  enabled`。**诚实边界**：OpenAI 会话级判定等有 key 再做；且 Codex 对任何
-  hook 都要求一次性 `/hooks` 信任审查（是它的设计）后 hook 才生效。
-
-### OpenCode 安装
+一条命令，装好机器上用到的所有 agent：
 
 ```bash
 cd your-project && npx tokenshave install
 ```
 
-### Claude Code 安装
+| Agent | 写入内容 | 额外步骤 |
+|---|---|---|
+| OpenCode | `.opencode/plugins/tokenshave.ts` | 无 |
+| Claude Code | `.tokenshave/claude/` | `claude plugin marketplace add ./.tokenshave/claude --scope project` |
+| Codex CLI | `.codex/hooks.json` | 会话里跑一次 `/hooks` 信任 hook |
+| Cursor | `.cursor/hooks.json` | 无（受信任工作区自动加载） |
+
+用户级安装，不动仓库：
 
 ```text
+# Claude Code，会话内
 /plugin marketplace add ljppanda/tokenshave
 /plugin install tokenshave@tokenshave
-```
 
-或者项目级（不动用户全局配置，随仓库走）：
-
-```bash
-cd your-project && npx tokenshave install
-claude plugin marketplace add ./.tokenshave/claude --scope project
-```
-
-### Codex CLI 安装
-
-```bash
+# Codex CLI
 codex plugin marketplace add ljppanda/tokenshave
 codex plugin add tokenshave@tokenshave
 ```
 
-然后在 Codex 会话里执行一次 `/hooks` 信任 hook。
+只裁剪 `shell` 的输出。`read`/`edit` 原样通过——源码理解比省 token 重要。
 
-或者项目级（`npx tokenshave install` 会写好 `.codex/hooks.json`），随后在
-该项目会话里执行一次 `/hooks` 信任。
+## 裁什么
 
-三种情况下都只裁剪 `shell`/`Bash` 的结果——`read`/`edit` 的理解力保持原样
-（源码理解比 token 更重要）。
+| 命令家族 | 进 model 前 | 进 model 后 |
+|---|---|---|
+| `npm install` 等 | 依赖安装日志 | 头 3 + 尾 8 + 每条报错行 |
+| 测试运行器（`vitest`、`pytest`…） | 每个 ok 测试一行 | 头 4 + 尾 12 + 每条 `failed`/`✗`/`AssertionError` 行 |
+| 编译器（`tsc`、`cargo build`…） | 反复的进度刷屏 | 头 4 + 尾 10 + 每条编译错误 |
+| 打包器（`vite build`、`next build`…） | 警告刷屏 | 头 4 + 尾 12 + 警告/报错 |
+| `curl` / `wget` | HTML 正文 | 状态码、响应头 |
+| `git diff` | 上下文行 | hunk 头、`+`/`-` 行 |
+| 其他任何命令 | — | 头 10 + 尾 20 + 报错行 |
 
-## 快速开始
+低于规则行数预算的输出逐字节原样通过。不需要裁剪的时候，一次也不会裁。
 
-```bash
-cd your-agent-project
-npx tokenshave install    # OpenCode：写 .opencode/plugins/tokenshave.ts
-                          # Claude Code：写 .tokenshave/claude/（然后执行
-                          #             claude plugin marketplace add ./.tokenshave/claude --scope project）
-                          # Codex CLI：写 .codex/hooks.json（然后 /hooks 信任一次）
-npm i -g tokenshave       # 把引擎放到稳定的全局位置
-/reload 你的 agent 之后照常干活
-npx tokenshave stats      # 看看省了多少（OpenCode 会话记账）
-```
+## 实测数据
 
-代码里用：
+真实抓取的输出 + 真实 BPE 分词器（o200k）。完整凭据见 [VERIFY.md](VERIFY.md)：
+
+| 抓取的输出 | 原始 → 裁剪后 | 节省 |
+|---|---|---|
+| `node --test`，61 行 TAP | 497 → 225 tok | 55% |
+| `git diff`，200 行文件里 28 处修改 | 3,134 → 771 tok | 75% |
+| `pip install`（缓存命中，17 行） | 506 → 506 tok | 0% |
+| `npm install` 失败（ERESOLVE 倾倒） | 282 → 282 tok | 0% |
+
+## 库用法
 
 ```ts
 import { shave, record } from "tokenshave";
 
-const raw = await runTool("npm install express");
-const result = shave("npm install express", raw.output);
+const result = shave("npm install express", rawOutput);
+// result.output — 裁剪后的文本；不需要裁剪时逐字节等同原文
+// result.rawTokens / result.keptTokens
 
-// 把裁剪后的文本交给 agent
-await runTool(result.output);
-
-// 记一笔省了多少
-record({
-  tool: "npm install express",
-  rule: result.rule,
-  rawLines: result.rawLines,
-  keptLines: result.keptLines,
-  rawTokens: result.rawTokens,
-  keptTokens: result.keptTokens,
-});
+record({ tool: "npm install express", rule: result.rule, rawTokens: result.rawTokens, keptTokens: result.keptTokens });
 ```
-
-## 看看省了多少
 
 ```bash
 npx tokenshave stats
@@ -131,49 +85,43 @@ npx tokenshave stats
 ```
 tool            calls  raw tok  kept tok   saved
 npm                 3    12,400     1,100     91%
-git diff            1     3,200       40      98%
-────────────────────────────────────────────────────
+────────────────────────────────────────────────
 total               4    15,600     1,140     93%
 
-≈ $0.04 saved (input @ $3/M tokens, override with TOKENSHAVE_COST_PER_M)
+≈ $0.04 saved (input @ $3/M tokens, TOKENSHAVE_COST_PER_M overrides)
 ```
 
-## 引擎如何工作
-
-对每一个工具输出，`shave()` 应用一条按命令分类的规则：
-
-| 规则族 | 保留什么 |
-|---|---|
-| package-manager-install | 头 3 行 + 尾 8 行 + 每一条错误行 |
-| test-runner | 头 4 + 尾 12，每条 `failed`/`✗`/`AssertionError` 行 |
-| compiler | 头 4 + 尾 10，每条编译错误 |
-| bundler-build | 头 4 + 尾 12，警告 + 错误 |
-| http-client | 头部、状态码、set-cookie |
-| unified diff | hunk 头和 ± 行，上下文行裁掉 |
-| generic 兜底 | 头 10 + 尾 20，错误 |
-
-小输出（低于该规则的行数预算）**原样通过**——用不上的裁剪永远不会发生。
-
-## 环境变量
-
-| 变量 | 默认值 | 含义 |
+| 环境变量 | 默认值 | 说明 |
 |---|---|---|
-| `TOKENSHAVE_DIR` | `~/.tokenshave` | `stats.jsonl` 的存放位置（纯 JSON，属于你） |
-| `TOKENSHAVE_COST_PER_M` | `3` | 每百万输入 token 的美元价，用于省钱估算 |
+| `TOKENSHAVE_DIR` | `~/.tokenshave` | `stats.jsonl` 的位置 |
+| `TOKENSHAVE_COST_PER_M` | `3` | 估算用的 $/1M 输入 token |
+
+## 各 agent 的接线方式
+
+- **OpenCode** —— `execute.after` 插件 hook，原地改写 shell 工具的结果对象。已做端到端验收：四个真实 `opencode run --auto` 场景，agent 全部答对，token 少 66–79%。
+- **Claude Code** —— in-process mod（`tool.call` 中间件）。2.1.314 上 `claude plugin validate` 和 `claude plugin test` 通过；三条 marketplace 安装路径全部实测。
+- **Codex CLI** —— `PostToolUse` hook，打印文档规定的替换信封（`continue:false, reason`）。契约逐行读自 codex 0.166.0 源码；打包经 `codex plugin marketplace add` / `add` 实测。
+- **Cursor** —— `preToolUse` hook，通过文档规定的 `updated_input` 字段把白名单命令改写成一个 wrapper：wrapper 跑真命令、打印裁剪后的输出。契约读自 Cursor hooks 官方文档；`e2e/cursor-hook-e2e.mjs` 21 项检查。
+
+所有适配器 fail-open：出任何差错，原始输出原样送达 model，不会变残废。
+
+## 哪些还没验证
+
+直说，因为"诚实验证"是本项目的卖点：
+
+- **Claude Code / Codex 真实会话**——4 场景协议在真实 OpenCode 会话里跑过；Claude 和 Codex 目前是 harness 判定，因为作者分别拿不到两家的 API key。harness 喂给 hook 的是从源码/文档读出的精确线上契约，但还没有任何模型读过 Claude/Codex 的裁剪后对话。
+- **Cursor 真实会话**——同样情况：wrapper 在真实 spawn 进程里验证过（exit code、npm install、失败行保留都测了），但还没人在 Cursor IDE 里跑过它。
 
 ## Roadmap
 
-- [x] 裁剪引擎（v0.1，真实输出验证——见 VERIFY.md）
-- [x] OpenCode 插件 + `npx tokenshave install` / `uninstall`（v0.2）
-- [x] 统计账本 + `tokenshave stats`
-- [x] 真实 agent 会话中的端到端验收（4 场景，v0.4）
-- [x] Claude Code 适配器：in-process mod，三条安装路径实测（v0.5）
-- [x] Codex CLI 适配器：PostToolUse hook 替换 shell 结果，契约对照 codex 0.166.0 源码核实（v0.6）
-- [ ] Claude Code 会话级判定：在真实交互会话里跑同一套 4 场景协议（卡在 API key）
-- [ ] Codex 会话级判定：同上（卡在 OpenAI key）
-- [ ] Claude mod 与 Codex hook 的统计记账（命令 hook 加一行账本写入是候选方案）
-- [ ] Cursor 适配器
-- [ ] 可选的"连 `read` 输出也裁"开关
+- [x] 裁剪引擎，对照真实输出验证
+- [x] OpenCode 插件 + 真会话验收（4 场景）
+- [x] Claude Code mod，三条安装路径实测
+- [x] Codex CLI hook，契约读自 codex 0.166.0 源码
+- [x] Cursor 适配器（v0.7）
+- [ ] Claude Code / Codex / Cursor 的会话级判定（卡 API key / 一个 IDE）
+- [ ] Claude mod 与 Codex/Cursor hook 的统计记账
+- [ ] `read` 输出的可选裁剪
 
 ## License
 

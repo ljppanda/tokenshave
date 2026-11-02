@@ -9,6 +9,7 @@ import {
   type ClaudeModTargets,
 } from "./claudeMod.js";
 import { CODEX_HOOK_MARKER, generateCodexHookFiles } from "./codexHook.js";
+import { CURSOR_HOOK_MARKER, generateCursorHookFiles } from "./cursorHook.js";
 import { loadEngineBundle } from "./claudeBundle.js";
 
 /**
@@ -171,7 +172,7 @@ export default plugin
 
 export interface InstallReport {
   file: string;
-  agent: "opencode" | "claude" | "codex";
+  agent: "opencode" | "claude" | "codex" | "cursor";
   action: "created" | "skipped-existing" | "left-foreign-file";
 }
 
@@ -187,7 +188,15 @@ async function packageVersion(): Promise<string> {
   }
 }
 
-const INSTALL_MARKERS = [INSTALL_MARKER, CLAUDE_MOD_MARKER, CLAUDE_MARKETPLACE_MARKER, CODEX_HOOK_MARKER];
+const INSTALL_MARKERS = [INSTALL_MARKER, CLAUDE_MOD_MARKER, CLAUDE_MARKETPLACE_MARKER, CODEX_HOOK_MARKER, CURSOR_HOOK_MARKER];
+
+/** project-local Cursor hook files (.cursor/hooks.json + self-contained wrapper script) */
+export function cursorTargets(dir: string): { hooksJson: string; wrapJs: string } {
+  return {
+    hooksJson: join(dir, ".cursor", "hooks.json"),
+    wrapJs: join(dir, ".tokenshave", "tokenshave-cursor.js"),
+  };
+}
 
 /** project-local Codex hook files (.codex/hooks.json + self-contained script) */
 export function codexTargets(dir: string): { hooksJson: string; shaveJs: string } {
@@ -243,10 +252,39 @@ export async function installPlugins(dir: string, pkgUrl?: string): Promise<Inst
     reports.push({ file: target, agent: "codex", action });
   }
 
+  // Cursor project-local hook (.cursor/hooks.json + dual-role wrapper script)
+  const cursor = cursorTargets(dir);
+  const cursorFiles = await generateCursorHookFiles(
+    generatedAt,
+    version,
+    `node "${cursor.wrapJs.replace(/\\/g, "/")}"`,
+    engineBundle,
+  );
+  const cursorReports: Array<[keyof typeof cursor, string]> = [
+    ["hooksJson", cursorFiles.hooksJson],
+    ["wrapJs", cursorFiles.wrapJs],
+  ];
+  for (const [key, content] of cursorReports) {
+    const target = cursor[key];
+    await mkdir(dirname(target), { recursive: true });
+    // the generated hooks.json carries no marker FIELD (Cursor's schema is
+    // strict and extra keys are not a documentable risk): identity is the
+    // hook command pointing at the generated wrapper script's filename
+    const oursIf =
+      key === "hooksJson" ? (existing: string) => existing.includes("tokenshave-cursor.js") : undefined;
+    const action = await writeIfOurs(target, CURSOR_HOOK_MARKER, content, oursIf);
+    reports.push({ file: target, agent: "cursor", action });
+  }
+
   return reports;
 }
 
-async function writeIfOurs(target: string, marker: string, content: string): Promise<InstallReport["action"]> {
+async function writeIfOurs(
+  target: string,
+  marker: string,
+  content: string,
+  oursIf?: (existing: string) => boolean,
+): Promise<InstallReport["action"]> {
   let existing: string | null = null;
   try {
     existing = await readFile(target, "utf8");
@@ -254,7 +292,8 @@ async function writeIfOurs(target: string, marker: string, content: string): Pro
     existing = null;
   }
   if (existing !== null) {
-    return INSTALL_MARKERS.some((m) => existing!.includes(m)) ? "skipped-existing" : "left-foreign-file";
+    const ours = INSTALL_MARKERS.some((m) => existing!.includes(m)) || (oursIf?.(existing!) ?? false);
+    return ours ? "skipped-existing" : "left-foreign-file";
   }
   await writeFile(target, content, "utf8");
   return "created";
@@ -262,7 +301,7 @@ async function writeIfOurs(target: string, marker: string, content: string): Pro
 
 export interface UninstallReport {
   file: string;
-  agent: "opencode" | "claude" | "codex";
+  agent: "opencode" | "claude" | "codex" | "cursor";
   action: "removed" | "left-foreign-file" | "not-built";
 }
 
@@ -315,6 +354,24 @@ export async function uninstallPlugins(dir: string): Promise<UninstallReport[]> 
       }
     } catch {
       reports.push({ file: target, agent: "codex", action: "not-built" });
+    }
+  }
+
+  const cursor = cursorTargets(dir);
+  for (const [target, identity] of [
+    [cursor.hooksJson, (c: string) => c.includes("tokenshave-cursor.js")],
+    [cursor.wrapJs, (c: string) => INSTALL_MARKERS.some((m) => c.includes(m))],
+  ] as const) {
+    try {
+      const content = await readFile(target, "utf8");
+      if (identity(content)) {
+        await unlink(target);
+        reports.push({ file: target, agent: "cursor", action: "removed" });
+      } else {
+        reports.push({ file: target, agent: "cursor", action: "left-foreign-file" });
+      }
+    } catch {
+      reports.push({ file: target, agent: "cursor", action: "not-built" });
     }
   }
 

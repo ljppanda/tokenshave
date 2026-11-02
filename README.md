@@ -1,134 +1,82 @@
 # tokenshave
 
-English | [简体中文](README.zh-CN.md)
-
 [![test](https://github.com/ljppanda/tokenshave/actions/workflows/test.yml/badge.svg)](https://github.com/ljppanda/tokenshave/actions/workflows/test.yml)
 
-**Make your AI coding agent faster and cheaper. Automatically.**
+English | [简体中文](README.zh-CN.md)
 
-`tokenshave` sits between your AI coding agent and the tools it runs, and trims
-the verbose output (npm install logs, test suites, diffs) that eats your tokens
-before it enters the context window.
+Your coding agent reads tool output before it reads your code. `tokenshave` trims that output — npm log spam, wall-of-green test runs, diff context lines — before it enters the context window. Failures, summaries, and errors always survive; only filler is removed.
 
-- **Pure local processing** — no network, no device, no daemons
-- **Zero runtime dependencies** — one file of pure functions
-- **Transparent** — every shaved output carries a marker line saying exactly what was removed
-- **Reversible** — errors, failures and summaries are always kept
+```
+tool output (220 lines)  →  tokenshave  →  30 lines + a marker count of what was cut
+```
 
-## Why
+No network. No runtime dependencies. Every trimmed output carries a marker line stating exactly what was removed, so the agent always knows it's reading shaved output.
 
-Verified with real captured outputs and a real BPE tokenizer (GPT o200k):
+## Install
 
-| Real output captured | raw → shaved | saved | why |
-|---|---|---|---|
-| `node --test` (61 lines of TAP) | 497 → 225 tok | **55%** | per-test ok-lines are noise |
-| `git diff`, 28 scattered edits in a 200-line file | 3,134 → 771 tok | **75%** | context lines dominate |
-| `pip install` (cache hit, 17 lines) | 506 → 506 tok | 0% | correctly left untouched |
-| `npm install` failure (ERESOLVE dump) | 282 → 282 tok | 0% | error output = payload, kept byte-identical |
-
-Note for honesty: a *successful* `npm install` on npm 9+ is ~12 lines and is
-not a pain point. Savings come from test runners, verbose builders, repeated
-warnings and diff context. See [VERIFY.md](VERIFY.md) for the methodology.
-
-## Status: v0.6.0 — three agents: OpenCode live-verified, Claude Code verified at harness level, Codex CLI shipped
-
-Engine (24/24 tests), stats ledger, and three adapters shaving **shell** output:
-
-- **OpenCode V2 plugin** — accepted in real agent sessions (`opencode run
-  --auto`) across four scenarios — quiet success, failing test-runs, scattered
-  diffs, and a fact buried mid-log — every one answered correctly by the
-  agent, at 66–79% fewer tokens (receipts in [VERIFY.md](VERIFY.md), e.g.
-  `4,951 → 1,146 tok, exact failing test name`).
-- **Claude Code mod** — in-process `tool.call` middleware rewriting Bash
-  results. Verified against Claude Code 2.1.314 with `claude plugin validate`
-  (passed) and `claude plugin test` (real Bash event fired through the hook:
-  228 synthetic lines shaved, failure lines and markers kept). All install
-  routes ran live: local project marketplace, user-scope install, remote
-  GitHub marketplace. *Honest edge:* a full interactive Claude session needs
-  an API key this project's author can't spend — the session-level check
-  ([VERIFY.md](VERIFY.md)) is therefore a harness verdict, not a live chat.
-- **Codex CLI hook** — a PostToolUse command hook that replaces the
-  model-visible result of completed shell commands with its shaved form
-  (contract verified line-by-line against the openai/codex 0.166.0 sources;
-  hooks feature is stable there). Harness level: the hook runs as a real
-  process fed the exact stdin shape — 220-line synthetic output → 85%
-  smaller envelope, failure lines kept, small/garbage/wrong-tool input
-  passes through untouched. Install routes ran live: local marketplace
-  `codex plugin marketplace add` + `codex plugin add`, plugin listed
-  `installed, enabled`. *Honest edges:* the live-session verdict awaits an
-  OpenAI key, and Codex requires a one-time `/hooks` trust review before
-  any hook runs (by design, for every plugin hook).
-
-### Install for OpenCode
+One command wires every agent it finds relevant:
 
 ```bash
 cd your-project && npx tokenshave install
 ```
 
-### Install for Claude Code
+| Agent | What gets written | Extra step |
+|---|---|---|
+| OpenCode | `.opencode/plugins/tokenshave.ts` | none |
+| Claude Code | `.tokenshave/claude/` | `claude plugin marketplace add ./.tokenshave/claude --scope project` |
+| Codex CLI | `.codex/hooks.json` | run `/hooks` once in a session to trust the hook |
+| Cursor | `.cursor/hooks.json` | none (loads in trusted workspaces) |
+
+User-scope installs, no checkout side effects:
 
 ```text
+# Claude Code, inside a session
 /plugin marketplace add ljppanda/tokenshave
 /plugin install tokenshave@tokenshave
-```
 
-or project-local (no user-wide setup, edits live with your repo):
-
-```bash
-cd your-project && npx tokenshave install
-claude plugin marketplace add ./.tokenshave/claude --scope project
-```
-
-### Install for Codex CLI
-
-```bash
+# Codex CLI
 codex plugin marketplace add ljppanda/tokenshave
 codex plugin add tokenshave@tokenshave
 ```
 
-then run `/hooks` once inside Codex to trust the hook.
+Only `shell` output is shaved. `read`/`edit` pass through untouched — source-code comprehension matters more than tokens.
 
-or project-local (`npx tokenshave install` writes `.codex/hooks.json` for
-you), then run `/hooks` once in a session in that project.
+## What it does
 
-In all three cases only `shell`/`Bash` results are shaved — `read`/`edit`
-comprehension stays intact.
+| Command family | Before it reaches the model | After |
+|---|---|---|
+| `npm install` etc. | dependency logs | head 3 + tail 8 + every error line |
+| test runners (`vitest`, `pytest`, …) | per-test ok lines | head 4 + tail 12 + every `failed`/`✗`/`AssertionError` line |
+| compilers (`tsc`, `cargo build`, …) | repeated progress noise | head 4 + tail 10 + every compile error |
+| bundlers (`vite build`, `next build`, …) | warning floods | head 4 + tail 12 + warnings/errors |
+| `curl` / `wget` | HTML bodies | status codes, headers |
+| `git diff` | context lines | hunk headers, `+`/`-` lines |
+| anything else | — | head 10 + tail 20 + error lines |
 
-## Quick start
+Outputs below the rule's line budget pass through byte-identical. A shave that isn't needed never happens.
 
-```bash
-cd your-agent-project
-npx tokenshave install    # wires all three adapters it finds relevant:
-                          # OpenCode: .opencode/plugins/tokenshave.ts
-                          # Claude Code: .tokenshave/claude/ (then: claude plugin
-                          #             marketplace add ./.tokenshave/claude --scope project)
-                          # Codex CLI: .codex/hooks.json (then: /hooks to trust once)
-npm i -g tokenshave       # keeps the engine in a stable global location
-/reload your agent and work as usual
-npx tokenshave stats      # see what you saved (OpenCode sessions)
-```
+## Measured
+
+Real captured outputs, real BPE tokenizer (o200k). Full receipts in [VERIFY.md](VERIFY.md):
+
+| Captured output | raw → shaved | saved |
+|---|---|---|
+| `node --test`, 61 lines of TAP | 497 → 225 tok | 55% |
+| `git diff`, 28 edits in a 200-line file | 3,134 → 771 tok | 75% |
+| `pip install` (cache hit, 17 lines) | 506 → 506 tok | 0% |
+| `npm install` failure (ERESOLVE dump) | 282 → 282 tok | 0% |
+
+## Library
 
 ```ts
 import { shave, record } from "tokenshave";
 
-const raw = await runTool("npm install express");
-const result = shave("npm install express", raw.output);
+const result = shave("npm install express", rawOutput);
+// result.output — trimmed text, byte-identical when nothing needed cutting
+// result.rawTokens / result.keptTokens
 
-// hand the trimmed text to the agent
-await runTool(result.output);
-
-// remember what you saved
-record({
-  tool: "npm install express",
-  rule: result.rule,
-  rawLines: result.rawLines,
-  keptLines: result.keptLines,
-  rawTokens: result.rawTokens,
-  keptTokens: result.keptTokens,
-});
+record({ tool: "npm install express", rule: result.rule, rawTokens: result.rawTokens, keptTokens: result.keptTokens });
 ```
-
-## See what you saved
 
 ```bash
 npx tokenshave stats
@@ -137,50 +85,43 @@ npx tokenshave stats
 ```
 tool            calls  raw tok  kept tok   saved
 npm                 3    12,400     1,100     91%
-git diff            1     3,200       40      98%
-────────────────────────────────────────────────────
+────────────────────────────────────────────────
 total               4    15,600     1,140     93%
 
-≈ $0.04 saved (input @ $3/M tokens, override with TOKENSHAVE_COST_PER_M)
+≈ $0.04 saved (input @ $3/M tokens, TOKENSHAVE_COST_PER_M overrides)
 ```
 
-## How the engine works
-
-For every tool output, `shave()` applies a per-tool rule:
-
-| rule family | what's kept |
-|---|---|
-| package-manager-install | head 3 + tail 8 lines, every error line |
-| test-runner | head 4 + tail 12, every `failed`/`✗`/`AssertionError` line |
-| compiler | head 4 + tail 10, every compile error |
-| bundler-build | head 4 + tail 12, warnings + errors |
-| http-client | headers, status codes, set-cookie |
-| unified diff | hunk headers and ± lines, context dropped |
-| generic fallback | head 10 + tail 20, errors |
-
-Small outputs (under the rule's line budget) pass through **untouched** — a
-shave that isn't needed never happens.
-
-## Environment
-
-| var | default | meaning |
+| Env var | Default | |
 |---|---|---|
-| `TOKENSHAVE_DIR` | `~/.tokenshave` | where `stats.jsonl` lives (plain JSON, yours) |
-| `TOKENSHAVE_COST_PER_M` | `3` | USD price per 1M input tokens, for the cost estimate |
+| `TOKENSHAVE_DIR` | `~/.tokenshave` | where `stats.jsonl` lives |
+| `TOKENSHAVE_COST_PER_M` | `3` | $/1M input tokens for the estimate |
+
+## How each agent is wired
+
+- **OpenCode** — an `execute.after` plugin hook that rewrites the shell tool's result object in place. Verified end-to-end: four live `opencode run --auto` scenarios, agent answered correctly every time at 66–79% fewer tokens.
+- **Claude Code** — an in-process mod (`tool.call` middleware). `claude plugin validate` and `claude plugin test` pass on 2.1.314; all three marketplace install routes ran live.
+- **Codex CLI** — a `PostToolUse` hook printing the documented replacement envelope (`continue:false, reason`). Contract read from the codex 0.166.0 sources; packaging ran live via `codex plugin marketplace add` / `add`.
+- **Cursor** — a `preToolUse` hook rewriting whitelisted commands through the documented `updated_input` field into a wrapper that runs your command and prints its shaved output. Contract read from Cursor's hooks docs; 21-check harness in `e2e/cursor-hook-e2e.mjs`.
+
+Every adapter fails open: if anything goes wrong, the original output goes to the model untouched. Bad stdout leaves shaving disabled, not broken.
+
+## What's *not* verified yet
+
+Said plainly, because verification is this project's main selling point:
+
+- **Claude Code / Codex live sessions** — the 4-scenario protocol ran in real OpenCode sessions; for Claude and Codex it's a harness verdict because this author lacks API keys for either. The harness feeds hooks the exact wire contracts (read from sources/docs), but no model has yet read a shaved Claude/Codex transcript.
+- **Cursor live session** — same situation: the wrapper was exercised in real spawned processes (exit codes, npm installs, failure-line preservation all checked), but nobody has run it inside the Cursor IDE itself.
 
 ## Roadmap
 
-- [x] Shaving engine (v0.1, verified with real outputs — see VERIFY.md)
-- [x] OpenCode plugin + `npx tokenshave install` / `uninstall` (v0.2)
-- [x] Stats ledger + `tokenshave stats`
-- [x] Live end-to-end verification in real agent sessions (4 scenarios, v0.4)
-- [x] Claude Code adapter: in-process mod, three live-verified install routes (v0.5)
-- [x] Codex CLI adapter: PostToolUse hook replacing shell results, contract verified against codex 0.166.0 sources (v0.6)
-- [ ] Claude Code session verdict: run the same 4-scenario protocol in a real interactive Claude session (blocked on an API key)
-- [ ] Codex session verdict: same, in a real interactive Codex session (blocked on an OpenAI key)
-- [ ] Stats ledger from the Claude mod and the Codex hook (command hooks: a tiny mode where the hook posts one ledger line is on the table)
-- [ ] Cursor adapter
-- [ ] Optional bash-only toggle for users who also want shaved `read` output
+- [x] Shaving engine, verified against real outputs
+- [x] OpenCode plugin + live-session acceptance (4 scenarios)
+- [x] Claude Code mod, three install routes live
+- [x] Codex CLI hook, contract from codex 0.166.0 sources
+- [x] Cursor adapter (v0.7)
+- [ ] Session-level verdicts for Claude Code / Codex / Cursor (blocked on API keys / an IDE)
+- [ ] Stats ledger from the Claude mod and the Codex/Cursor hooks
+- [ ] Opt-in shaving for `read` output
 
 ## License
 

@@ -330,6 +330,92 @@ codex-rs/...):**
   `tool_response` shape, the hook fails open (prints nothing) — worst case
   is no shaving, never wrong content.
 
+## Cursor adapter (2026-11-02, VERIFIED at harness level; contract read from the hooks docs)
+
+Target: Cursor (IDE agent). This machine has **no Cursor install at all**
+(`where.exe cursor` / `cursor-agent` find nothing; no desktop app) — so the
+verification stops at the documented contract and real spawned processes,
+with the live-session verdict listed under honest edges.
+
+**Engine-level facts, read from cursor.com/docs/hooks +
+cursor.com/docs/reference/third-party-hooks (checked 2026-11-02):**
+
+- `afterShellExecution` is **observe-only**: input carries
+  `command`/`output`/`duration`/`sandbox`, and the docs show no output
+  schema — its stated uses are auditing and metrics. Replacing output there
+  is not a documented capability.
+- `postToolUse` can replace output **only for MCP tools**
+  (`updated_mcp_tool_output`); for native `Shell` tools it offers only
+  `additional_context`, which is context ADDED after the untouched tool
+  result — that grows tokens instead of saving them.
+- The one documented rewrite point is **`preToolUse`'s `updated_input`**
+  ("Modified tool input to use instead"). That is the mechanism this
+  adapter uses.
+- Permission hooks (incl. `preToolUse`) **block on invalid/missing
+  output**: failing open therefore requires printing a valid
+  `{"permission":"allow"}` JSON, not empty stdout. Crash/timeout/other
+  exit codes fail open by default (`failClosed:false`), and exit 2 means
+  bind-in deny — never emitted.
+- Hook command runs on Windows through PowerShell; project hooks run
+  with cwd = project root. Cloud agents run project hooks too.
+
+**Adapter:** one self-contained script (`tokenshave-cursor.js`, engine
+inlined, zero static imports — dynamic `import("node:child_process")`
+keeps it loadable as both CJS and ESM) playing two roles:
+
+1. hook mode (`preToolUse`, matcher `"Shell"`): if the command is in a
+   conservative whitelist (named engine rules — installs / test runners /
+   compilers / bundlers / curl — plus `npm|pnpm|yarn|bun test`
+   spellings), rewrite it to
+   `node "<self>" <base64-of-command> tsh-cursor-wrap` via
+   `updated_input`. Sandboxed commands are NEVER rewritten (the wrapper
+   would unsandbox them — we refuse that behavior change). Watchers
+   (`npm run dev`) and interactive commands never match the whitelist.
+2. wrapper mode: spawn the original command (`shell:true`), capture
+   stdout/stderr separately, shave each with the inlined engine
+   (printing the shave only when strictly smaller), and exit with the
+   child's exit code. Per-stream capture cap: 2 MB.
+
+Install writes `.cursor/hooks.json` + `.tokenshave/tokenshave-cursor.js`.
+The generated `hooks.json` carries **no marker field** (Cursor's schema
+is strict and unknown keys are an undocumented risk), so "is this ours"
+is decided by the hook command referencing `tokenshave-cursor.js` —
+both at install (idempotency) and at uninstall (foreign-file detection).
+
+**What was verified (all live runs):**
+
+1. Unit tests (30/30 total now): hook rewrite shape + base64 round-trip;
+   pass-through allow for watcher/git/non-Shell/garbage/empty; sandbox
+   and already-wrapped refusal; wrapper engine-identity on a real
+   220-line process run (byte-equal to `shave()`), failure line kept,
+   stderr channel separate and intact, child's `process.exitCode = 7`
+   preserved byte-for-byte as the wrapper's exit code; small output
+   byte-identical.
+2. `e2e/cursor-hook-e2e.mjs` — 21/21 checks: install files, hooks.json
+   schema, rewritten-command execution like Cursor would do it (86%
+   smaller "terminal output" for the 220-line synthetic, `not ok 42`
+   byte-kept), pass-through family, sandbox/wrapped refusal, garbage→
+   valid allow.
+3. Real-world behavioral probe (no Cursor needed): the wrapper ran a
+   real `npm install left-pad@1.3.0 --no-save` in a scratch dir — exit
+   0, package actually installed to node_modules, the deprecation
+   warning survived, small output left effectively untouched.
+
+**Not yet verified (honest edges):**
+
+- A session inside the Cursor IDE (no install on this machine). The
+  harness uses the docs' exact stdin/response contracts, but a live
+  session verdict must wait for an IDE + account. Listed on the README
+  roadmap identically.
+- `updated_input` behavior when a *second* matching hook defines it too
+  (Cursor merges hook responses; per docs the lower-priority source
+  wins for non-permission fields — actually exercised by no test here).
+- Stream interleaving: stdout/stderr are shaved separately, so the
+  captured ordering between the two streams is no longer exact-pty
+  faithful. Raw-passthrough commands (non-whitelisted) are unaffected.
+- Very long single lines beyond the 2 MB cap: content is dropped with a
+  marker rather than shaven — wasteful but loud.
+
 ## Method
 
 1. Capture real command output on a real machine (Windows 11, Node 22,

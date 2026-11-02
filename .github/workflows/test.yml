@@ -26,3 +26,6 @@ jobs:
       # offline regression harness: captured real outputs through the engine
       # (predict.mjs / offcheck.mjs import ../dist, so it must run after build)
       - run: node e2e/predict.mjs && node e2e/offcheck.mjs
+      # adapter harnesses: real hook processes fed the exact tool stdin
+      # contracts (codex 0.166.0 / cursor preToolUse docs), no accounts needed
+      - run: node e2e/codex-hook-e2e.mjs && node e2e/cursor-hook-e2e.mjs

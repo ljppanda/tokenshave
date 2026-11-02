@@ -1,6 +1,6 @@
 {
   "name": "tokenshave",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Shaves noisy shell-command output (npm/test/git/build logs) before it enters Codex's context",
   "author": {
     "name": "ljppanda",

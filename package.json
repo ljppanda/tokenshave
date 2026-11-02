@@ -1,6 +1,6 @@
 {
   "name": "tokenshave",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Make your AI coding agent faster and cheaper: trim noisy tool output (npm logs, test suites, diffs) before it enters the context. Pure local, zero network, one command.",
   "type": "module",
   "main": "./dist/src/index.js",
@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "tsc -p tsconfig.json && node --test dist/test/engine.test.js dist/test/install.test.js dist/test/codexHook.test.js",
+    "test": "tsc -p tsconfig.json && node --test dist/test/engine.test.js dist/test/install.test.js dist/test/codexHook.test.js dist/test/cursorHook.test.js",
     "gen:claude-mod": "node scripts/gen-claude-mod.mjs",
     "gen:codex-mod": "node scripts/gen-codex-mod.mjs",
     "gen": "node scripts/gen-claude-mod.mjs && node scripts/gen-codex-mod.mjs",

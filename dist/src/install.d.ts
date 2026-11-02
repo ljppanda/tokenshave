@@ -20,9 +20,14 @@ export declare function defaultPackageUrl(): string;
 export declare function generatePluginSource(pkgUrl: string, generatedAt: string): string;
 export interface InstallReport {
     file: string;
-    agent: "opencode" | "claude" | "codex";
+    agent: "opencode" | "claude" | "codex" | "cursor";
     action: "created" | "skipped-existing" | "left-foreign-file";
 }
+/** project-local Cursor hook files (.cursor/hooks.json + self-contained wrapper script) */
+export declare function cursorTargets(dir: string): {
+    hooksJson: string;
+    wrapJs: string;
+};
 /** project-local Codex hook files (.codex/hooks.json + self-contained script) */
 export declare function codexTargets(dir: string): {
     hooksJson: string;
@@ -32,7 +37,7 @@ export declare function codexTargets(dir: string): {
 export declare function installPlugins(dir: string, pkgUrl?: string): Promise<InstallReport[]>;
 export interface UninstallReport {
     file: string;
-    agent: "opencode" | "claude" | "codex";
+    agent: "opencode" | "claude" | "codex" | "cursor";
     action: "removed" | "left-foreign-file" | "not-built";
 }
 export declare function uninstallPlugins(dir: string): Promise<UninstallReport[]>;

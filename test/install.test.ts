@@ -10,6 +10,8 @@ import {
   uninstallPlugins,
   generatePluginSource,
   pluginTargets,
+  codexTargets,
+  cursorTargets,
   INSTALL_MARKER,
 } from "../src/install.js";
 import { claudeModTargets, CLAUDE_MOD_MARKER } from "../src/claudeMod.js";
@@ -29,7 +31,12 @@ test("install writes the V2 plugin file with the package URL", async () => {
     const reports = await installPlugins(dir, FAKE_URL);
     assert.deepEqual(
       reports.map((r) => r.action),
-      ["created", "created", "created", "created", "created", "created", "created", "created"],
+      [
+        "created", // opencode
+        "created", "created", "created", "created", "created", // claude mod
+        "created", "created", // codex hook
+        "created", "created", // cursor hook
+      ],
     );
 
     const [v2path] = pluginTargets(dir);
@@ -116,7 +123,12 @@ test("re-install is idempotent and does not clobber", async () => {
     const again = await installPlugins(dir, FAKE_URL);
     assert.deepEqual(
       again.map((r) => r.action),
-      ["skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing"],
+      [
+        "skipped-existing",
+        "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing", "skipped-existing",
+        "skipped-existing", "skipped-existing",
+        "skipped-existing", "skipped-existing",
+      ],
     );
     const second = await readFile(v2path!, "utf8");
     assert.equal(first, second, "file must stay untouched on re-install");
@@ -138,7 +150,7 @@ test("uninstall removes only our files, leaves foreign files alone", async () =>
     const reports = await uninstallPlugins(dir);
     assert.deepEqual(
       reports.map((r) => r.action),
-      ["left-foreign-file", "not-built", "not-built", "not-built", "not-built", "not-built", "not-built", "not-built"],
+      ["left-foreign-file", "not-built", "not-built", "not-built", "not-built", "not-built", "not-built", "not-built", "not-built", "not-built"],
     );
     // foreign file survives
     const after = await readFile(foreign, "utf8");
@@ -155,10 +167,13 @@ test("full cycle: install 鈫?uninstall leaves no trace", async () => {
     const reports = await uninstallPlugins(dir);
     assert.deepEqual(
       reports.map((r) => r.action),
-      ["removed", "removed", "removed", "removed", "removed", "removed", "removed", "removed"],
+      ["removed", "removed", "removed", "removed", "removed", "removed", "removed", "removed", "removed", "removed"],
     );
     // both adapters' directories end up empty of our files
-    const targets = pluginTargets(dir).concat(Object.values(claudeModTargets(dir)));
+    const targets = pluginTargets(dir)
+      .concat(Object.values(claudeModTargets(dir)))
+      .concat(Object.values(codexTargets(dir)))
+      .concat(Object.values(cursorTargets(dir)));
     for (const t of targets) {
       await assert.rejects(() => readFile(t, "utf8"), () => true);
     }

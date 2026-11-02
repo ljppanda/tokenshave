@@ -30,3 +30,8 @@ const codexGen = await import("file:///" + dir.replace(/\\/g, "/") + "/dist/src/
 const codexFiles = await codexGen.generateCodexHookFiles("livetest", "0.6.0", 'node "shave.js"', engineBundle);
 console.log("5. codex hook:", "hooks Bash:", codexFiles.hooksJson.includes('"Bash"'), "| inlined shave:", codexFiles.shaveJs.includes("function shave"));
 
+// 6. the cursor hook generator: wrapper + documented updated_input rewrite
+const cursorGen = await import("file:///" + dir.replace(/\\/g, "/") + "/dist/src/cursorHook.js");
+const cursorFiles = await cursorGen.generateCursorHookFiles("livetest", "0.7.0", 'node "wrap.js"', engineBundle);
+console.log("6. cursor hook:", "matcher Shell:", cursorFiles.hooksJson.includes('"Shell"'), "| wraps commands:", cursorFiles.wrapJs.includes("updated_input"), "| inlined shave:", cursorFiles.wrapJs.includes("function shave"));
+

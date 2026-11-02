@@ -11,7 +11,7 @@ const RESET = "\x1b[0m";
 const HELP = `${BOLD}tokenshave${RESET} — make your coding agent cheaper, one shaved log at a time.
 
 Usage
-  tokenshave install      wire the plugins (OpenCode + Claude Code + Codex CLI)
+  tokenshave install      wire the plugins (OpenCode + Claude Code + Codex CLI + Cursor)
   tokenshave uninstall    remove the plugin files this tool created
   tokenshave stats        show what you saved so far
   tokenshave --help       this text
@@ -49,6 +49,7 @@ export async function main(argv: string[]): Promise<void> {
         const agent =
           r.agent === "opencode" ? `${DIM}[opencode]${RESET}` :
           r.agent === "codex" ? `${DIM}[codex]${RESET}` :
+          r.agent === "cursor" ? `${DIM}[cursor]${RESET}` :
           `${DIM}[claude]${RESET}`;
         console.log(`  ${icon}  ${agent}  ${r.file}`);
       }
@@ -64,6 +65,12 @@ ${BOLD}Claude Code${RESET}: register the project-local marketplace once (from yo
         console.log(`
 ${BOLD}Codex CLI${RESET}: open a Codex session in this project and run ${BOLD}/hooks${RESET} once`);
         console.log(`  to review and trust the tokenshave hook — Codex skips untrusted hooks.`);
+      }
+      const cursorHook = done.find((r) => r.agent === "cursor" && r.action !== "left-foreign-file");
+      if (cursorHook) {
+        console.log(`
+${BOLD}Cursor${RESET}: hooks load automatically in trusted workspaces (Settings → Agents → Hooks).`);
+        console.log(`  Cursor watches .cursor/hooks.json — no restart needed after the first load.`);
       }
       console.log("\nReload opencode (or run /reload) in this project, then use it for a bit.");
       console.log(`Check savings with ${BOLD}tokenshave stats${RESET}.`);
