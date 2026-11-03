@@ -416,6 +416,31 @@ both at install (idempotency) and at uninstall (foreign-file detection).
 - Very long single lines beyond the 2 MB cap: content is dropped with a
   marker rather than shaven — wasteful but loud.
 
+## npm 0.7.0 release + first live-session verdict (2026-11-03, VERIFIED)
+
+- Staged (`249657f8-…`), and this time **the staged tarball was downloaded
+  and checked BEFORE asking for approval** (lesson from the 0.6.0 bin
+  incident): `bin` intact without the `./` prefix, `dist/src/cursorHook.js`
+  + tests + both READMEs in the tarball. Approved on the npmjs.com Staged
+  Packages tab; `npm view tokenshave@0.7.0 --prefer-online` → live,
+  `bin` present.
+- Live registry acceptance `e2e/check-npm-publish.mjs` after a fresh
+  install: **6/6** — engine `1193 → 183 tok, not ok 42 kept`; claude mod
+  5 files; codex hook; new: cursor hook matcher Shell + `updated_input`
+  rewrite + inlined engine.
+- **First live session on the freshly published package** (up to now every
+  live-session trial ran on the repo working tree): scratch project →
+  `npm i tokenshave@0.7.0` → `npx tokenshave install` (11 files created
+  across all four agents) → real `opencode v2.2.0 run --auto` session
+  (desktop's `opencode-cli.exe`) with a synthetic 268-line CI log and a
+  failing test buried mid-run. The agent answered correctly
+  (`refund twice exceeds balance`) and the ledger recorded the shave:
+  **`node biglog.cjs`, rule generic, 1,985 → 264 tok (87%), 268 → 35
+  lines**. `npx tokenshave stats` prints the aggregated ledger (69%
+  saved total across all recorded sessions, ≈$0.07 at $3/M).
+- Note: `opencode` on PATH resolves to the desktop install's
+  `resources/opencode-cli.exe`; used directly for the session.
+
 ## Method
 
 1. Capture real command output on a real machine (Windows 11, Node 22,
