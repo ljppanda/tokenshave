@@ -31,11 +31,14 @@
     "ai",
     "agent",
     "claude-code",
-    "opencode",
+    "cursor",
     "codex",
+    "opencode",
     "tokens",
     "context-window",
-    "developer-tools"
+    "llm",
+    "developer-tools",
+    "cost"
   ],
   "license": "MIT"
 }

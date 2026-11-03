@@ -1,6 +1,9 @@
 # tokenshave
 
 [![test](https://github.com/ljppanda/tokenshave/actions/workflows/test.yml/badge.svg)](https://github.com/ljppanda/tokenshave/actions/workflows/test.yml)
+[![npm](https://img.shields.io/npm/v/tokenshave)](https://www.npmjs.com/package/tokenshave)
+[![npm downloads](https://img.shields.io/npm/dw/tokenshave)](https://www.npmjs.com/package/tokenshave)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/tokenshave)](https://www.npmjs.com/package/tokenshave)
 
 English | [简体中文](README.zh-CN.md)
 
